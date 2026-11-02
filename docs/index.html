@@ -132,29 +132,20 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .h-title{min-width:0;flex:1;border:0;background:none;padding:0;text-align:left}
 .h-title b{display:block;font-family:var(--display);font-size:clamp(18px,4.8vw,22px);font-weight:500;line-height:1.1;letter-spacing:-.015em;overflow-wrap:anywhere}
 .tile:not(.wide) .h-title b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-/* tile sizes: Small = square, Wide = number left + chart right, Large = full-width chart + half-year heatmap */
-.tile.sz-w:not(.shared){display:grid;grid-template-columns:minmax(0,.72fr) minmax(0,1.28fr);column-gap:8px;align-items:end;grid-auto-rows:auto}
-.tile.sz-w:not(.shared) > .h-head,.tile.sz-w:not(.shared) > .steps,.tile.sz-w:not(.shared) > .cz{grid-column:1/-1}
-.tile.sz-w:not(.shared) > .h-head{align-self:start}
+/* tile sizes: Small = square widget with the streak number; Wide and Large let the chart lead, streak sits quietly in the subtitle */
+.tile.sz-w:not(.shared),.tile.sz-l{display:flex;flex-direction:column}
+.tile.sz-w:not(.shared) > .tleft,.tile.sz-l > .tleft{display:none}
+.tile.sz-w:not(.shared) > .viz,.tile.sz-l > .viz{margin-top:18px}
+.h-title small .stk{display:none}
+.tile.sz-w .h-title small .stk,.tile.sz-l .h-title small .stk{display:inline}
+.stk em{font-style:normal;color:var(--ink);font-weight:600}
 .tleft{display:flex;flex-direction:column}
-.big-sub{display:none;gap:4px 12px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
-.big-sub b{color:var(--ink);font-weight:700}
-.tile.sz-w:not(.shared) > .tleft{align-self:center;margin-top:14px}
-.tile.sz-w:not(.shared) > .tleft .big{margin:0 0 8px}
-.tile.sz-w:not(.shared) > .tleft .big-sub{display:flex;flex-direction:column}
-.tile.sz-w:not(.shared) > .viz{margin:14px -18px 0 -6px;align-self:center}
-.tile.sz-w:not(.shared) > .viz:is([data-kind=beads],[data-kind=ring],[data-kind=month],[data-kind=line],[data-kind=battery],[data-kind=rings],[data-kind=goal]){margin-right:0}
-.tile.sz-w:not(.shared) > .viz[data-kind=goal] .v-goal div:first-child,.tile.sz-w:not(.shared) > .viz[data-kind=goal] .v-goal div:last-child{border-radius:10px}
-.tile.sz-w:not(.shared) > .viz:is([data-kind=month],[data-kind=line],[data-kind=battery],[data-kind=goal]) .pad-axis,.tile.sz-w:not(.shared) > .viz:is([data-kind=month],[data-kind=line],[data-kind=battery]) > div:first-child{padding-right:0}
-.tile.sz-w:not(.shared) > .viz[data-kind=battery] .v-batt{margin-right:0}
-.tile.sz-l > .tleft .big-sub{display:flex;margin:-6px 0 12px}
-.tile.sz-l > .viz[data-kind=month]{container-type:inline-size;width:min(100%, 250px);margin:6px auto 0}
-.tile.sz-l > .viz[data-kind=month] .v-month{padding:0}
-.tile.sz-l > .viz[data-kind=month] .v-month{grid-auto-rows:calc((100cqw - 18px) / 7)}
-.tile.sz-l > .viz[data-kind=month] .v-month i{font-size:11px;border-radius:7px}
-.tile.sz-l > .viz[data-kind=month] .pad-axis{padding:0}
-.tile.sz-l .big b{font-size:clamp(56px,16vw,78px)}
-.tile.sz-l > .viz{margin-top:6px}
+.big-sub{display:none}
+.tile:is(.sz-l,.sz-w) > .viz[data-kind=month]{container-type:inline-size;width:min(100%, 250px);margin:6px auto 0}
+.tile:is(.sz-l,.sz-w) > .viz[data-kind=month] .v-month{padding:0}
+.tile:is(.sz-l,.sz-w) > .viz[data-kind=month] .v-month{grid-auto-rows:calc((100cqw - 18px) / 7)}
+.tile:is(.sz-l,.sz-w) > .viz[data-kind=month] .v-month i{font-size:11px;border-radius:7px}
+.tile:is(.sz-l,.sz-w) > .viz[data-kind=month] .pad-axis{padding:0}
 .lg-heat{container-type:inline-size;margin-top:18px;padding-top:14px;border-top:1px solid var(--rim)}
 .lg-heat .p-months{margin-top:0}
 .h-title small{display:block;margin-top:3px;color:var(--muted);font-size:12.5px}
@@ -1320,11 +1311,11 @@ function habitTile(h, kind, force){
     else { right = el(`<button class="chip-btn txt" aria-label="Nudge">${ICON.bell}</button>`); right.onclick = async () => { right.disabled = true; right.style.opacity=.5; await sendNudge(h); }; }
   } else right = steps ? null : checkBtn(h);
   const who = kind === "theirs" ? h.owner : S.me;
-  tile.append(headFor(h, steps ? `${stepCount(h, who)} today · ${goalText(h)}` : subFor(h, kind), right));
+  const head = headFor(h, steps ? `${stepCount(h, who)} today · ${goalText(h)}` : subFor(h, kind), right);
+  if (st > 0) head.querySelector("small").append(el(`<span class="stk"> · <em>${st}</em> ${weekly ? "week" : "day"} streak</span>`));
+  tile.append(head);
   if (steps) tile.append(stepPills(h, who, kind !== "theirs"));
   const left = el(`<div class="tleft"><div class="big"><b class="num">${st}</b><span>${weekly?"week":"day"}<br>streak</span></div></div>`);
-  const best = bestStreak(h), second = weekly ? `<b>${monthProg(h, k => levelOn(h, k)).done}</b> this month` : `<b>${weekDone(h, mondayOf(nowD()))}</b>/7 this week`;
-  left.append(el(`<div class="big-sub"><span>Best <b>${best}</b></span><span>${second}</span></div>`));
   tile.append(left, vizFor(h));
   if (size === "l") tile.append(largeHeat(h));
   return tile;
