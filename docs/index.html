@@ -298,6 +298,15 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .smap i{height:12px;border-radius:2px;background:var(--cell)}
 .smap i.fut{background:transparent}
 .smap i.rest{background:repeating-linear-gradient(135deg,var(--cell) 0 2px,transparent 2px 4px)}
+/* per-step streaks */
+.step{position:relative}
+.step .sk{display:block;font-size:10px;font-weight:700;opacity:.75;margin-top:1px;font-variant-numeric:tabular-nums}
+.step.on .sk{opacity:.7}
+.sbar{position:relative}
+.sbar em{position:absolute;inset:0 auto 0 0;border-radius:99px;background:color-mix(in oklab, var(--b) 30%, transparent)}
+.sbar b{position:relative;z-index:1}
+.skf{display:inline-flex;align-items:center;gap:2px;color:var(--ink);font-weight:700}
+.skf svg{width:12px;height:12px;color:var(--warn)}
 /* steps editor */
 .sedit{display:grid;gap:8px}
 .srows{display:grid;gap:6px}
@@ -984,12 +993,34 @@ function stepPills(h, uid, editable, compact, k = today()){
     const on = a.includes(i);
     const b = el(`<button type="button" class="step${on ? " on" : ""}" aria-pressed="${on}"></button>`);
     b.textContent = compact ? name.trim().slice(0, 1).toUpperCase() : name;
-    b.title = name; b.setAttribute("aria-label", `${name}: ${on ? "done" : "not done"}`);
+    const sk = compact || k !== today() ? 0 : stepStreak(h, i, uid);
+    if (sk >= 2){ const t = el(`<small class="sk"></small>`); t.textContent = `${sk}d`; b.append(t); }
+    b.title = name; b.setAttribute("aria-label", `${name}: ${on ? "done" : "not done"}${sk >= 2 ? `, ${sk} day streak` : ""}`);
     if (editable) b.onclick = e => { e.stopPropagation(); toggleStep(h.id, k, i); };
     else b.disabled = true;
     row.append(b);
   });
   return row;
+}
+function stepStreak(h, i, uid = S.me){
+  const did = k => stepArr(uid, h.id, k).includes(i);
+  let s = 0;
+  for (let d = did(today()) ? 0 : 1; d < 1000; d++){
+    const k = keyOf(daysAgo(d));
+    if (did(k)) s++; else if (!isRest(h, k)) break;
+  }
+  return s;
+}
+function bestStepStreak(h, i, uid = S.me){
+  const keys = Object.keys(S.progress[uid]?.days?.[h.id] || {}).filter(k => k <= today()).sort();
+  if (!keys.length) return 0;
+  let best = 0, run = 0;
+  for (const d = dk(keys[0]); keyOf(d) <= today(); d.setDate(d.getDate() + 1)){
+    const k = keyOf(d);
+    if (stepArr(uid, h.id, k).includes(i)){ run++; if (run > best) best = run; }
+    else if (!isRest(h, k)) run = 0;
+  }
+  return best;
 }
 function stepCount(h, uid, k = today()){ return `${stepArr(uid, h.id, k).length}/${stepsOf(h).length}`; }
 function checkBtn(h){
@@ -1510,6 +1541,23 @@ function stepPatterns(h, yr, first){
   }
   return out;
 }
+function stepStreaksBlock(h){
+  const st = stepsOf(h); if (!st) return null;
+  const box = el(`<div class="sstats"><div class="lbl"></div></div>`);
+  box.querySelector(".lbl").textContent = h.owner === US ? "Your step streaks" : "Step streaks";
+  const cur = st.map((_, i) => stepStreak(h, i)), best = st.map((_, i) => bestStepStreak(h, i));
+  const top = Math.max(1, ...best);
+  st.forEach((name, i) => {
+    const r = el(`<div class="srow"><span class="sname"></span><span class="sbar"><b></b><em></em></span><span class="snum"><span class="skf">${ICON.flame}${cur[i]}</span> · best ${best[i]}</span></div>`);
+    r.querySelector(".sname").textContent = name;
+    r.querySelector(".sbar em").style.width = (best[i] / top * 100) + "%";
+    r.querySelector(".sbar b").style.width = (cur[i] / top * 100) + "%";
+    box.append(r);
+  });
+  const lead = cur.indexOf(Math.max(...cur));
+  if (cur[lead] > 0){ const n = el(`<p class="sfoot"></p>`); n.innerHTML = `Longest going: <b></b> (${cur[lead]} ${cur[lead] === 1 ? "day" : "days"}). Missing one step only resets that step's streak.`; n.querySelector("b").textContent = st[lead]; box.append(n); }
+  return box;
+}
 function stepStats(h, dayKeys, label){
   const st = stepsOf(h); if (!st || !dayKeys.length) return null;
   const counts = st.map(() => 0); let full = 0, sum = 0;
@@ -1602,6 +1650,7 @@ function openDetail(h, pickDay){
       }
       const dayKeys = []; for (let dd = 1; dd <= dim; dd++){ const k = keyOf(new Date(y, mo, dd, 12)); if (k <= today() && !isRest(h, k)) dayKeys.push(k); }
       const ss = stepStats(h, dayKeys, `${h.owner === US ? "Your steps" : "Each step"} · ${new Date(y, mo, 1).toLocaleString("en",{month:"long"})}`);
+      if (mIdx === maxMonth){ const sb = stepStreaksBlock(h); if (sb) parts.push(sb); }
       parts.push(stepMap(h, y, mo));
       if (ss) parts.push(ss);
     }
