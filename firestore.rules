@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// Two of Us Habits — who can read and write what.
+// - Each person's "users/{uid}" doc only says which board (household) they belong to.
+// - A household has at most two members. You join by opening the private invite link,
+//   which contains the household's random id.
+// - Only members can see a household's habits, check-ins, nudges and reward jar.
+// - Each person's check-ins (progress/{uid}) can only be written by that person.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function household(hid) { return get(/databases/$(database)/documents/households/$(hid)).data; }
+    function isMember(hid) { return signedIn() && request.auth.uid in household(hid).members; }
+
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /households/{hid} {
+      allow create: if signedIn() && request.resource.data.members == [request.auth.uid];
+      allow read: if signedIn() && request.auth.uid in resource.data.members;
+      allow update: if signedIn() && (
+        // a member changing other details (members list stays the same)
+        (request.auth.uid in resource.data.members
+          && request.resource.data.members == resource.data.members)
+        ||
+        // joining with the invite link: add only yourself, only while there's room
+        (!(request.auth.uid in resource.data.members)
+          && resource.data.members.size() < 2
+          && request.resource.data.members == resource.data.members.concat([request.auth.uid])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']))
+      );
+      allow delete: if false;
+
+      match /progress/{uid} {
+        allow read: if isMember(hid);
+        allow write: if isMember(hid) && request.auth.uid == uid;
+      }
+
+      match /{col}/{docId} {
+        allow read, write: if isMember(hid) && col in ['habits', 'nudges', 'settings'];
+      }
+    }
+  }
+}
