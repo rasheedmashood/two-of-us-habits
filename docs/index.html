@@ -126,10 +126,31 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .h-title{min-width:0;flex:1;border:0;background:none;padding:0;text-align:left}
 .h-title b{display:block;font-family:var(--display);font-size:clamp(18px,4.8vw,22px);font-weight:500;line-height:1.1;letter-spacing:-.015em;overflow-wrap:anywhere}
 .tile:not(.wide) .h-title b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.tile.solo{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);column-gap:8px;align-items:end}
-.tile.solo .h-head{grid-column:1/-1;align-self:start}
-.tile.solo .big{margin-bottom:4px}
-.tile.solo .viz{margin:14px -18px 0 0}
+/* tile sizes: Small = square, Wide = number left + chart right, Large = full-width chart + half-year heatmap */
+.tile.sz-w:not(.shared){display:grid;grid-template-columns:minmax(0,.72fr) minmax(0,1.28fr);column-gap:8px;align-items:end;grid-auto-rows:auto}
+.tile.sz-w:not(.shared) > .h-head,.tile.sz-w:not(.shared) > .steps,.tile.sz-w:not(.shared) > .cz{grid-column:1/-1}
+.tile.sz-w:not(.shared) > .h-head{align-self:start}
+.tleft{display:flex;flex-direction:column}
+.big-sub{display:none;gap:4px 12px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.big-sub b{color:var(--ink);font-weight:700}
+.tile.sz-w:not(.shared) > .tleft{align-self:center;margin-top:14px}
+.tile.sz-w:not(.shared) > .tleft .big{margin:0 0 8px}
+.tile.sz-w:not(.shared) > .tleft .big-sub{display:flex;flex-direction:column}
+.tile.sz-w:not(.shared) > .viz{margin:14px -18px 0 -6px;align-self:center}
+.tile.sz-w:not(.shared) > .viz:is([data-kind=beads],[data-kind=ring],[data-kind=month],[data-kind=line],[data-kind=battery],[data-kind=rings],[data-kind=goal]){margin-right:0}
+.tile.sz-w:not(.shared) > .viz[data-kind=goal] .v-goal div:first-child,.tile.sz-w:not(.shared) > .viz[data-kind=goal] .v-goal div:last-child{border-radius:10px}
+.tile.sz-w:not(.shared) > .viz:is([data-kind=month],[data-kind=line],[data-kind=battery],[data-kind=goal]) .pad-axis,.tile.sz-w:not(.shared) > .viz:is([data-kind=month],[data-kind=line],[data-kind=battery]) > div:first-child{padding-right:0}
+.tile.sz-w:not(.shared) > .viz[data-kind=battery] .v-batt{margin-right:0}
+.tile.sz-l > .tleft .big-sub{display:flex;margin:-6px 0 12px}
+.tile.sz-l > .viz[data-kind=month]{container-type:inline-size;width:min(100%, 250px);margin:6px auto 0}
+.tile.sz-l > .viz[data-kind=month] .v-month{padding:0}
+.tile.sz-l > .viz[data-kind=month] .v-month{grid-auto-rows:calc((100cqw - 18px) / 7)}
+.tile.sz-l > .viz[data-kind=month] .v-month i{font-size:11px;border-radius:7px}
+.tile.sz-l > .viz[data-kind=month] .pad-axis{padding:0}
+.tile.sz-l .big b{font-size:clamp(56px,16vw,78px)}
+.tile.sz-l > .viz{margin-top:6px}
+.lg-heat{container-type:inline-size;margin-top:18px;padding-top:14px;border-top:1px solid var(--rim)}
+.lg-heat .p-months{margin-top:0}
 .h-title small{display:block;margin-top:3px;color:var(--muted);font-size:12.5px}
 .chip-btn{flex:none;height:30px;min-width:42px;padding:0 10px;border-radius:99px;border:0;background:var(--track);display:grid;place-items:center;color:var(--muted);transition:transform .15s}
 .chip-btn svg{width:16px;height:16px}
@@ -179,10 +200,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .v-wave i{border-radius:3px 3px 1px 1px;min-height:4px;background:var(--track)}
 /* viz: beads */
 .v-beads{display:flex;justify-content:center;align-items:center;height:52px}
-.v-beads i{width:22px;height:22px;border-radius:50%;margin:0 -2px;flex:none;background:radial-gradient(circle at 35% 30%,var(--bead-hi),var(--bead-lo))}
+.v-beads i{width:19px;height:19px;border-radius:50%;margin:0 -2px;flex:none;background:radial-gradient(circle at 35% 30%,var(--bead-hi),var(--bead-lo))}
 .v-beads i.on{background:radial-gradient(circle at 35% 30%,var(--b),var(--a) 78%)}
-.v-beads i.now{width:38px;height:38px;z-index:1;box-shadow:0 0 0 5px var(--halo),0 0 0 11px var(--halo)}
-.v-beads i.now.on{box-shadow:0 0 0 5px var(--halo),0 0 0 11px var(--halo),0 0 22px var(--b)}
+.v-beads i.now{width:32px;height:32px;z-index:1;margin-left:2px;box-shadow:0 0 0 4px var(--halo),0 0 0 8px var(--halo)}
+.v-beads i.now.on{box-shadow:0 0 0 4px var(--halo),0 0 0 8px var(--halo),0 0 18px var(--b)}
 /* viz: month calendar */
 .v-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;padding:0 18px}
 .v-month i{aspect-ratio:1;border-radius:5px;background:var(--track);font-style:normal;font-size:9px;display:grid;place-items:center;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -313,6 +334,72 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .board > [data-hid].lifting{position:relative;z-index:50;transition:none;box-shadow:inset 0 0 0 1px var(--rim),0 24px 48px -16px rgba(0,0,0,.45),0 8px 18px -10px rgba(0,0,0,.3);cursor:grabbing;will-change:transform}
 body.reordering{cursor:grabbing}
 body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacity:.92}
+/* section labels */
+.label.sec{display:flex;align-items:center;gap:8px;border:0;background:none;padding:6px 6px 2px;margin:10px 0 0;cursor:pointer;font:inherit;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:left}
+.label.sec em{font-style:normal;letter-spacing:0;color:var(--faint);font-variant-numeric:tabular-nums}
+.label.sec svg{width:14px;height:14px;margin-left:auto;transition:transform .35s var(--spring)}
+.label.sec.collapsed svg{transform:rotate(-90deg)}
+.lay-row{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.round.sm{width:40px;height:40px}
+.round.sm svg{width:18px;height:18px}
+/* hold to complete */
+.hold{position:relative;overflow:hidden;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.chip-btn.hold > svg{position:relative;z-index:1}
+.hold-fill{position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,var(--a),var(--b));transform:scaleX(0);transform-origin:left;opacity:.6;pointer-events:none}
+.chip-btn.hold.holding .hold-fill{transform:scaleX(1);transition:transform .48s cubic-bezier(.4,0,.6,1)}
+.chip-btn.hold.holding{transform:scale(1.06)}
+.chip-btn[aria-pressed="true"] .hold-fill{background:var(--track)}
+.ring.hold.holding .g{transform:scale(.86);transition:transform .42s cubic-bezier(.4,0,.6,1)}
+.ring.hold.holding .ic{filter:brightness(1.4)}
+/* swipe to tick */
+.tile.swiping{transition:none}
+.swipe-fx{position:absolute;inset:0;border-radius:inherit;pointer-events:none;overflow:hidden;z-index:2}
+.swipe-fx::before{content:"";position:absolute;top:0;bottom:0;left:0;width:calc(var(--p,0) * 100%);background:linear-gradient(90deg,var(--a),var(--b));opacity:.2;transition:opacity .2s}
+.swipe-fx.left::before{left:auto;right:0;background:linear-gradient(270deg,var(--track),var(--faint));opacity:.35}
+.swipe-fx span{position:absolute;top:50%;left:max(12px, calc(var(--p,0) * 100% - 46px));width:34px;height:34px;margin-top:-17px;border-radius:50%;display:grid;place-items:center;background:var(--tile);color:var(--muted);box-shadow:0 4px 14px -6px rgba(0,0,0,.4);transform:scale(.7);opacity:.5;transition:transform .25s var(--spring),opacity .2s,background .2s,color .2s}
+.swipe-fx.left span{left:auto;right:max(12px, calc(var(--p,0) * 100% - 46px))}
+.swipe-fx span svg{width:18px;height:18px}
+.swipe-fx.armed span{transform:scale(1.12);opacity:1;background:linear-gradient(135deg,var(--a),var(--b));color:#141016}
+.swipe-fx.left.armed span{background:var(--ink);color:var(--bg)}
+.swipe-fx.armed::before{opacity:.32}
+.swipe-fx.out{transition:opacity .25s;opacity:0}
+/* scrubbing */
+.scrub-tip{position:fixed;left:0;top:0;z-index:80;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;font-weight:600;padding:7px 11px;border-radius:10px;white-space:nowrap;box-shadow:0 8px 20px -10px rgba(0,0,0,.5);opacity:0;transition:opacity .15s}
+.scrub-tip.on{opacity:1}
+.scrub-on{outline:2px solid var(--ink);outline-offset:1px;position:relative;z-index:1}
+.board,.board > [data-hid]{touch-action:pan-y}
+/* moments */
+.fx-layer{position:fixed;inset:0;pointer-events:none;z-index:70}
+.fx-layer i{position:fixed;width:8px;height:8px;border-radius:50%}
+.day-done{position:fixed;left:50%;bottom:calc(104px + env(safe-area-inset-bottom,0px));z-index:75;display:flex;align-items:center;gap:8px;padding:12px 18px;border-radius:99px;background:var(--ink);color:var(--bg);font-weight:700;font-size:15px;box-shadow:0 14px 30px -12px rgba(0,0,0,.5);pointer-events:none}
+.day-done span{display:grid;color:var(--warn)}
+.day-done svg{width:18px;height:18px}
+.ping{animation:ping 1s cubic-bezier(.2,.8,.2,1)}
+@keyframes ping{0%{box-shadow:0 0 0 0 color-mix(in oklab,var(--her) 80%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
+/* tile-to-history morph */
+::view-transition-group(morph){animation-duration:.46s;animation-timing-function:cubic-bezier(.2,.9,.25,1)}
+::view-transition-old(morph),::view-transition-new(morph){height:100%;width:100%;object-fit:cover;object-position:top;animation-duration:.46s}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.3s}
+.vt-morph .scrim,.vt-morph .scrim .sheet{animation:none!important}
+/* customise mode */
+.customizing > [data-hid]{animation:wiggle .34s ease-in-out infinite alternate;animation-delay:calc(var(--i,0) * -61ms);cursor:grab}
+.customizing > [data-hid].lifting{animation:none}
+.customizing > [data-hid] > :not(.cz){pointer-events:none}
+@keyframes wiggle{from{rotate:-.45deg}to{rotate:.45deg}}
+.cz{display:flex;gap:4px;justify-content:center;margin-top:14px;padding:4px;border-radius:99px;background:var(--track);align-self:center;width:max-content;max-width:100%}
+.cz button{border:0;background:none;border-radius:99px;padding:7px 12px;font-weight:700;font-size:12.5px;color:var(--muted)}
+.cz button.on{background:var(--ink);color:var(--bg)}
+.tile.sz-w:not(.shared) > .cz,.tile.sz-l > .cz,.tile.shared > .cz{justify-self:center}
+.cz-panel{gap:12px}
+.cz-top{display:flex;align-items:flex-start;gap:12px}
+.cz-top div{min-width:0;flex:1}
+.cz-top b{display:block;font-family:var(--display);font-weight:500;font-size:22px}
+.cz-top small{display:block;color:var(--muted);font-size:13px;margin-top:4px;line-height:1.4}
+.cz-toggles{display:flex;flex-wrap:wrap;gap:8px}
+.cz-t{opacity:.55}
+.cz-t.on{opacity:1;box-shadow:inset 0 0 0 1.5px var(--ink)}
+.into-shared{box-shadow:inset 0 0 0 2px var(--her),0 24px 48px -16px rgba(0,0,0,.45)!important}
+.ghosted{opacity:.35}
 /* steps editor */
 .sedit{display:grid;gap:8px}
 .srows{display:grid;gap:6px}
@@ -652,6 +739,10 @@ function syncActive(){
   S.allHabits.forEach(h => HB[h.id] = h);
   S.habits = S.allHabits.filter(h => !isPaused(h));
 }
+const prefs = () => S.progress[S.me]?.prefs || {};
+function setPref(mut){ saveMine(n => { n.prefs = structuredClone(n.prefs || {}); mut(n.prefs); }); }
+const SIZES_FOR = (h, kind) => (kind === "ours" || stepsOf(h)) ? ["w","l"] : ["s","w","l"];
+function sizeOf(h, kind){ const want = prefs().sizes?.[h.id], ok = SIZES_FOR(h, kind); return ok.includes(want) ? want : ok[0]; }
 const tagged = (node, h, kind) => { if (kind !== "theirs"){ node.dataset.hid = h.id; node.dataset.group = kind; } return node; };
 const perWeek = h => Number(h.perWeek) || 7;
 function mondayOf(d){ const x = new Date(d); x.setHours(12,0,0,0); x.setDate(x.getDate() - ((x.getDay()+6)%7)); return x; }
@@ -737,20 +828,38 @@ function moveNav(){
   if (cur && ind) ind.style.transform = `translateX(${cur.offsetLeft}px)`;
 }
 let pendingRender = false;
+// re-render and glide everything that moved; new things fade up into place
+function flipRender(){
+  const old = document.querySelector(".board"), before = new Map();
+  if (old) [...old.children].forEach(c => { if (c.dataset.key) before.set(c.dataset.key, c.getBoundingClientRect()); });
+  render();
+  if (reduced) return;
+  const nb = document.querySelector(".board"); if (!nb) return;
+  [...nb.children].forEach(c => {
+    const a = before.get(c.dataset.key);
+    if (a){ const r = c.getBoundingClientRect(), dx = a.left - r.left, dy = a.top - r.top, sx = a.width / r.width, sy = a.height / r.height;
+      if (Math.abs(dx) > .5 || Math.abs(dy) > .5 || Math.abs(sx - 1) > .01 || Math.abs(sy - 1) > .01)
+        c.animate([{transformOrigin: "top left", transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`}, {transformOrigin: "top left", transform: "none"}], {duration: 400, easing: "cubic-bezier(.2,.9,.25,1.04)"}); }
+    else c.animate([{opacity: 0, transform: "translateY(14px) scale(.97)"}, {opacity: 1, transform: "none"}], {duration: 380, easing: "cubic-bezier(.2,.8,.2,1)"});
+  });
+}
 function render(){
   if (!S.ready.habits || !S.ready.progress) return;
   if (S.dragging){ pendingRender = true; return; }
-  const enter = animMode === "enter" && !reduced; animMode = null;
+  const enter = animMode === "enter" && !reduced; const animWas = animMode; animMode = animWas && String(animWas).startsWith("slide") ? animWas : null;
   const y = window.scrollY;
   const app = document.getElementById("app");
   app.replaceChildren(topBar());
-  const board = el(`<div class="board${enter ? " enter" : ""}"></div>`);
+  const slide = typeof animMode === "string" && animMode.startsWith("slide") ? animMode : null; animMode = null;
+  const board = el(`<div class="board${enter ? " enter" : ""}${S.customize && S.view === "today" ? " customizing" : ""}"></div>`);
   const parts = S.view === "week" ? weekView() : S.view === "us" ? usView() : todayView();
-  parts.forEach((p, i) => p.style.setProperty("--i", i));
+  parts.forEach((p, i) => { p.style.setProperty("--i", i); if (!p.dataset.key) p.dataset.key = p.dataset.hid || ("x" + i); });
   board.append(...parts);
   app.append(board);
   if (enter){ stagger(board); countUp(board); }
+  else if (slide){ window.scrollTo(0, 0); if (!reduced){ const dir = slide === "slide-left" ? 1 : -1; board.animate([{opacity: 0, transform: `translateX(${dir * 48}px)`}, {opacity: 1, transform: "none"}], {duration: 360, easing: "cubic-bezier(.2,.8,.2,1)"}); } countUp(board); }
   else window.scrollTo(0, y);
+  runMoments();
   popId = null;
   document.querySelectorAll(".nav button").forEach(b => { if (b.dataset.view === S.view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   moveNav();
@@ -793,21 +902,18 @@ function layoutSwitch(){
   requestAnimationFrame(() => { const on = d.querySelector('[aria-pressed="true"]'), ind = d.querySelector(".lay-ind"); if (on){ ind.style.width = on.offsetWidth + "px"; ind.style.transform = `translateX(${on.offsetLeft}px)`; } });
   return d;
 }
-function heatWeeks(){ const w = Math.min(window.innerWidth, 520) - 32 - 28; return Math.max(16, Math.min(53, Math.floor((w + 3) / 13))); }
+function heatWeeks(pad = 28){ const w = Math.min(window.innerWidth, 520) - 32 - pad; return Math.max(16, Math.min(53, Math.floor((w + 3) / 13))); }
 function rowHead(h, kind){
   const c = colorOf(h);
   const head = el(`<div class="p-head"><span class="p-ic">${iconFor(h.title)}</span><button class="p-title"></button><span class="p-meta"><span>${ICON.flame}${streak(h)}</span><span>${completed(h)}d</span></span></div>`);
-  const t = head.querySelector(".p-title"); t.textContent = h.title; t.onclick = () => openDetail(h); t.setAttribute("aria-label", `History for ${h.title}`);
+  const t = head.querySelector(".p-title"); t.textContent = h.title; t.onclick = e => morphOpen(e.currentTarget.closest(".tile"), h); t.setAttribute("aria-label", `History for ${h.title}`);
   if (kind === "theirs"){
     if (didOn(h.owner,h.id,today())) head.append(el(`<span class="chip-btn done" aria-label="Done today">${ICON.tick}</span>`));
     else { const n = el(`<button class="chip-btn txt" aria-label="Nudge">${ICON.bell}</button>`); n.onclick = async () => { n.disabled = true; n.style.opacity = .5; await sendNudge(h); }; head.append(n); }
   } else head.append(stepsOf(h) ? stepPills(h, S.me, true, true) : checkBtn(h));
   return head;
 }
-function patternRow(h, kind){
-  const c = colorOf(h), N = heatWeeks();
-  const row = el(`<article class="tile wide prow${h.id === popId ? " pop" : ""}" style="--a:${c.a};--b:${c.b}"></article>`);
-  row.append(rowHead(h, kind));
+function heatBlock(h, N){
   const start = mondayOf(nowD()); start.setDate(start.getDate() - (N-1)*7);
   // running streak length, so long runs glow brighter
   const run = {}; let r = 0; const pre = new Date(start); pre.setDate(pre.getDate() - 30);
@@ -818,11 +924,11 @@ function patternRow(h, kind){
   let lastM = -1;
   for (let col = 0; col < N; col++){
     const top = new Date(start); top.setDate(top.getDate() + col*7);
-    if (top.getMonth() !== lastM){ if ((col > 0 || new Date(top.getFullYear(), top.getMonth()+1, 1) - top > 14*864e5)){ const s = el(`<span></span>`); s.textContent = MONTHS[top.getMonth()]; s.style.gridColumn = `${col+1} / span ${Math.min(3, N - col)}`; months.append(s); } lastM = top.getMonth(); }
+    if (top.getMonth() !== lastM){ if ((col > 0 || new Date(top.getFullYear(), top.getMonth()+1, 1) - top > 14*864e5)){ const sp = el(`<span></span>`); sp.textContent = MONTHS[top.getMonth()]; sp.style.gridColumn = `${col+1} / span ${Math.min(3, N - col)}`; months.append(sp); } lastM = top.getMonth(); }
     for (let row7 = 0; row7 < 7; row7++){
       const d = new Date(top); d.setDate(d.getDate() + row7);
       const k = keyOf(d), cell = el(`<i></i>`);
-      cell.style.setProperty("--j", col);
+      cell.style.setProperty("--j", col); cell.dataset.k = k;
       if (k > today()) cell.classList.add("future");
       else {
         const lv = levelOn(h, k);
@@ -834,7 +940,12 @@ function patternRow(h, kind){
       heat.append(cell);
     }
   }
-  row.append(months, heat);
+  return [months, heat];
+}
+function patternRow(h, kind){
+  const c = colorOf(h), N = heatWeeks();
+  const row = el(`<article class="tile wide prow${h.id === popId ? " pop" : ""}" style="--a:${c.a};--b:${c.b}"></article>`);
+  row.append(rowHead(h, kind), ...heatBlock(h, N));
   return row;
 }
 function inviteTile(){
@@ -895,45 +1006,95 @@ function weekRow(h, kind){
   row.append(wk);
   return row;
 }
+const SEC_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+function secLabel(text, group, count){
+  const collapsed = !!prefs().collapsed?.[group];
+  const b = el(`<button type="button" class="label sec${collapsed ? " collapsed" : ""}" aria-expanded="${!collapsed}"><span></span><em></em>${SEC_ICON}</button>`);
+  b.querySelector("span").textContent = text;
+  b.querySelector("em").textContent = count ? String(count) : "";
+  b.dataset.key = "lbl-" + group; b.dataset.dropgroup = group;
+  b.onclick = () => toggleSection(group);
+  return b;
+}
+function toggleSection(group){
+  if (S.customize) return;
+  const collapsing = !prefs().collapsed?.[group];
+  const go = () => { setPref(p => { p.collapsed = {...(p.collapsed || {}), [group]: collapsing}; if (!collapsing) delete p.collapsed[group]; }); flipRender(); };
+  const tiles = [...document.querySelectorAll(`.board > [data-group="${group}"], .board > [data-key="note-${group}"]`)];
+  if (collapsing && tiles.length && !reduced){
+    tiles.forEach((t, i) => t.animate([{opacity: 1, transform: "none"}, {opacity: 0, transform: "translateY(-8px) scale(.97)"}], {duration: 180, delay: i * 18, easing: "ease-in", fill: "forwards"}));
+    setTimeout(go, 180 + tiles.length * 18);
+  } else go();
+}
+function customiseButton(){
+  const b = el(`<button type="button" class="round sm cz-btn" aria-label="Customise board">${SV('<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>', 1.8)}</button>`);
+  b.onclick = () => enterCustomise();
+  return b;
+}
+function enterCustomise(){ closeSheet(true); S.customize = true; S.view = "today"; flipRender(); }
+function exitCustomise(){ S.customize = false; flipRender(); }
+function customisePanel(){
+  const p = prefs(), pid = partnerId();
+  const t = el(`<section class="tile wide cz-panel"><div class="cz-top"><div><b>Customise</b><small>Drag to move. Tap a size. Drop a habit into Together to share it.</small></div><button type="button" class="btn" id="cz-done">Done</button></div><div class="cz-toggles"></div></section>`);
+  t.dataset.key = "czp";
+  const tg = t.querySelector(".cz-toggles");
+  const add = (label, key) => {
+    const on = !p[key];
+    const c = el(`<button type="button" class="chip cz-t${on ? " on" : ""}" aria-pressed="${on}"></button>`);
+    c.textContent = label;
+    c.onclick = () => { setPref(q => { q[key] = !q[key]; if (!q[key]) delete q[key]; }); flipRender(); };
+    tg.append(c);
+  };
+  add("Today's rings", "hideHero");
+  if (pid) add(`You & ${nameOf(pid)}`, "hideDuo");
+  t.querySelector("#cz-done").onclick = exitCustomise;
+  return t;
+}
+function sizeChips(h, kind, tile){
+  const ok = SIZES_FOR(h, kind), cur = sizeOf(h, kind);
+  if (ok.length < 2) return;
+  const bar = el(`<div class="cz" role="group" aria-label="Tile size"></div>`);
+  ok.forEach(sz => {
+    const b = el(`<button type="button" class="${sz === cur ? "on" : ""}" aria-pressed="${sz === cur}">${{s: "Small", w: "Wide", l: "Large"}[sz]}</button>`);
+    b.onclick = e => { e.stopPropagation(); setPref(q => { q.sizes = {...(q.sizes || {}), [h.id]: sz}; }); flipRender(); };
+    bar.append(b);
+  });
+  tile.append(bar);
+}
 function todayView(){
   const out = [];
-  const pid = partnerId();
+  const pid = partnerId(), p = prefs(), cz = !!S.customize;
   const mine = S.habits.filter(h => h.owner === S.me);
   const ours = S.habits.filter(h => h.owner === US);
   const theirs = pid ? S.habits.filter(h => h.owner === pid) : [];
   if (!S.habits.length){ out.push(emptyTile()); return out; }
-  out.push(layoutSwitch());
-  if (S.allHabits.length < 3){ const q = emptyTile(true); if (q) out.push(q); }
-  const cu = catchUpTile(); if (cu) out.push(cu);
-  const iv = inviteTile(); if (iv) out.push(iv);
-  if (S.layout !== "tiles"){
-    const mk = S.layout === "year" ? patternRow : weekRow;
-    const sec = (label, list, kind) => { if (!list.length) return; const l = el(`<div class="label"></div>`); l.textContent = label; out.push(l); list.forEach(h => out.push(tagged(mk(h, kind), h, kind))); };
-    sec("Together", ours, "ours"); sec("Yours", mine, "mine"); if (pid) sec(`${nameOf(pid)}'s`, theirs, "theirs");
-    return out;
+  const lay = el(`<div class="lay-row"></div>`); lay.dataset.key = "lay";
+  lay.append(layoutSwitch(), customiseButton());
+  if (cz) out.push(customisePanel()); else out.push(lay);
+  if (!cz){
+    if (S.allHabits.length < 3){ const q = emptyTile(true); if (q){ q.dataset.key = "qa"; out.push(q); } }
+    const cu = catchUpTile(); if (cu){ cu.dataset.key = "cu"; out.push(cu); }
+    const iv = inviteTile(); if (iv){ iv.dataset.key = "iv"; out.push(iv); }
   }
-  if (mine.length + ours.length) out.push(heroTile([...mine, ...ours]));
-  if (pid) out.push(duoTile(pid));
-  if (ours.length){ out.push(el(`<div class="label">Together</div>`)); ours.forEach(h => out.push(tagged(sharedTile(h), h, "ours"))); }
-  out.push(el(`<div class="label">Yours</div>`));
-  const pushTiles = (list, kind) => {
-    const ts = list.map(h => tagged(habitTile(h, kind), h, kind));
-    let open = null; // a square waiting for a partner in its row
-    ts.forEach(t => {
-      if (t.classList.contains("wide")){ if (open){ open.classList.add("wide", "solo"); open = null; } }
-      else open = open ? null : t;
-    });
-    if (open) open.classList.add("wide", "solo");
-    out.push(...ts);
+  const tiles = S.layout === "tiles";
+  if (tiles && (mine.length + ours.length) && !p.hideHero){ const hero = heroTile([...mine, ...ours]); hero.dataset.key = "hero"; out.push(hero); }
+  if (tiles && pid && !p.hideDuo){ const duo = duoTile(pid); duo.dataset.key = "duo"; out.push(duo); }
+  const mk = S.layout === "year" ? patternRow : S.layout === "week" ? weekRow : null;
+  const section = (label, list, kind, emptyText) => {
+    out.push(secLabel(label, kind, list.length));
+    if (p.collapsed?.[kind] && !cz) return;
+    if (!list.length){ if (emptyText){ const n = note(emptyText); n.dataset.key = "note-" + kind; n.dataset.dropgroup = kind; out.push(n); } return; }
+    if (mk){ list.forEach(h => { const t = tagged(mk(h, kind), h, kind); out.push(t); }); return; }
+    if (kind === "ours"){ list.forEach(h => { const t = tagged(sharedTile(h), h, kind); if (cz) sizeChips(h, kind, t); out.push(t); }); return; }
+    // squares pair up two per row; a square that would sit alone stretches to Wide
+    const sizes = list.map(h => sizeOf(h, kind)), eff = sizes.slice(); let open = -1;
+    sizes.forEach((sz, i) => { if (sz !== "s"){ if (open >= 0){ eff[open] = "w"; open = -1; } } else open = open >= 0 ? -1 : i; });
+    if (open >= 0) eff[open] = "w";
+    list.forEach((h, i) => { const t = tagged(habitTile(h, kind, eff[i]), h, kind); if (eff[i] !== sizes[i]) t.classList.add("solo"); if (cz) sizeChips(h, kind, t); out.push(t); });
   };
-  if (mine.length) pushTiles(mine, "mine");
-  else out.push(note("Nothing personal yet. Tap + to add a habit just for you."));
-  if (pid){
-    out.push(el(`<div class="label"></div>`)); out[out.length-1].textContent = `${nameOf(pid)}'s`;
-    if (theirs.length) pushTiles(theirs, "theirs");
-    else out.push(note(`${nameOf(pid)} hasn't added personal habits yet.`));
-  }
-  if (!ours.length){ out.push(el(`<div class="label">Together</div>`)); out.push(note("Add one habit you do together, like a walk after dinner.")); }
+  section("Together", ours, "ours", "Add one habit you do together, like a walk after dinner.");
+  section("Yours", mine, "mine", "Nothing personal yet. Tap + to add a habit just for you.");
+  if (pid) section(`${nameOf(pid)}'s`, theirs, "theirs", `${nameOf(pid)} hasn't added personal habits yet.`);
   return out;
 }
 function note(text){ const d = el(`<div class="tile wide"><p class="soft"></p></div>`); d.querySelector("p").textContent = text; return d; }
@@ -952,12 +1113,13 @@ function heroTile(hs){
     const label = on ? "Done" : isRest(h, today()) && !(sa && sa.length) ? "Rest" : st ? `${sa.length}/${st.length}` : weekly ? `${Math.min(thisWeek(h),perWeek(h))}/${perWeek(h)}` : "To do";
     const b = el(`<button class="ring ${on?'on':''}" aria-pressed="${on}" style="--c:${on?c.b:'var(--muted)'}"><div class="g">${arc(60,6,frac,c,"#2c2830")}<div class="ic">${iconFor(h.title)}</div></div><span></span></button>`);
     b.querySelector("span").textContent = label;
-    b.setAttribute("aria-label", `${h.title}: ${on ? "done today, tap to undo" : "tap when done"}`);
+    b.setAttribute("aria-label", `${h.title}: ${on ? "done today, press and hold to undo" : "press and hold when done"}`);
     if (st){
       const nxt = st.findIndex((_, j) => !sa.includes(j));
       b.setAttribute("aria-label", `${h.title}: ${sa.length} of ${st.length} done${nxt >= 0 ? `, tap to mark ${st[nxt]}` : ""}`);
-      b.onclick = () => nxt >= 0 ? toggleStep(h.id, today(), nxt) : openDetail(h);
-    } else b.onclick = () => toggle(h.id);
+      if (nxt >= 0) holdAction(b, () => toggleStep(h.id, today(), nxt), 380); else b.onclick = () => openDetail(h);
+    } else holdAction(b, () => toggle(h.id), 420);
+    b.classList.add("hold");
     if (h.id === popId) b.classList.add("pop");
     rings.append(b);
   });
@@ -997,7 +1159,7 @@ function headFor(h, sub, right){
   const head = el(`<div class="h-head"><button class="h-title"><b></b><small></small></button></div>`);
   head.querySelector("b").textContent = h.title;
   head.querySelector("small").textContent = sub;
-  head.querySelector(".h-title").onclick = () => openDetail(h);
+  head.querySelector(".h-title").onclick = e => morphOpen(e.currentTarget.closest(".tile"), h);
   head.querySelector(".h-title").setAttribute("aria-label", `History for ${h.title}`);
   if (right) head.append(right);
   return head;
@@ -1041,9 +1203,26 @@ function bestStepStreak(h, i, uid = S.me){
 function stepCount(h, uid, k = today()){ return `${stepArr(uid, h.id, k).length}/${stepsOf(h).length}`; }
 function checkBtn(h){
   const on = didOn(S.me, h.id, today());
-  const b = el(`<button class="chip-btn" aria-pressed="${on}" aria-label="${on?"Done today, tap to undo":"Mark done today"}">${ICON.tick}</button>`);
-  b.onclick = () => toggle(h.id);
+  const b = el(`<button class="chip-btn hold" aria-pressed="${on}" aria-label="${on?"Done today. Press and hold to undo":"Press and hold to mark done"}"><span class="hold-fill"></span>${ICON.tick}</button>`);
+  holdAction(b, () => toggle(h.id));
   return b;
+}
+// press and hold: a fill sweeps across, and the action fires when it's full.
+// Keyboard and screen readers (click with no pointer) act straight away.
+let holdHinted = false;
+function holdAction(btn, act, ms = 480){
+  let t = 0, down = false;
+  const cancel = () => { if (!down) return; down = false; clearTimeout(t); btn.classList.remove("holding"); };
+  btn.addEventListener("pointerdown", e => {
+    if (S.customize || e.button > 0) return;
+    e.stopPropagation(); down = true; btn.classList.add("holding");
+    t = setTimeout(() => { down = false; btn.classList.remove("holding"); btn.classList.add("held"); act(); }, ms);
+  });
+  btn.addEventListener("pointerup", e => { if (down){ cancel(); if (!holdHinted){ holdHinted = true; toast("Press and hold to check off"); } } });
+  btn.addEventListener("pointerleave", cancel);
+  btn.addEventListener("pointercancel", cancel);
+  btn.addEventListener("click", e => { e.stopPropagation(); if (e.detail === 0) act(); });
+  btn.addEventListener("contextmenu", e => e.preventDefault());
 }
 function subFor(h, kind){
   const weekly = perWeek(h) < 7;
@@ -1083,32 +1262,34 @@ function bestStreak(h){
   return best;
 }
 
-function habitTile(h, kind){
-  const c = colorOf(h), st = streak(h), weekly = perWeek(h) < 7;
-  const tile = el(`<article class="tile${h.id === popId ? " pop" : ""}" style="--a:${c.a};--b:${c.b}"></article>`);
+function largeHeat(h){
+  const box = el(`<div class="lg-heat"></div>`);
+  box.append(...heatBlock(h, heatWeeks(36)));
+  return box;
+}
+function habitTile(h, kind, force){
+  const c = colorOf(h), st = streak(h), weekly = perWeek(h) < 7, steps = stepsOf(h);
+  const size = force || sizeOf(h, kind);
+  const tile = el(`<article class="tile sz-${size}${size !== "s" ? " wide" : ""}${h.id === popId ? " pop" : ""}" style="--a:${c.a};--b:${c.b}"></article>`);
   let right;
   if (kind === "theirs"){
     if (didOn(h.owner,h.id,today())) right = el(`<span class="chip-btn done" aria-label="Done today">${ICON.tick}</span>`);
     else { right = el(`<button class="chip-btn txt" aria-label="Nudge">${ICON.bell}</button>`); right.onclick = async () => { right.disabled = true; right.style.opacity=.5; await sendNudge(h); }; }
-  } else right = stepsOf(h) ? null : checkBtn(h);
-  if (stepsOf(h)){
-    const who = kind === "theirs" ? h.owner : S.me;
-    tile.classList.add("wide");
-    tile.append(headFor(h, `${stepCount(h, who)} today · ${goalText(h)}`, right));
-    tile.append(stepPills(h, who, kind !== "theirs"));
-    tile.append(el(`<div class="big"><b class="num">${st}</b><span>${weekly?"week":"day"}<br>streak</span></div>`));
-    tile.append(vizFor(h));
-    return tile;
-  }
-  tile.append(headFor(h, subFor(h, kind), right));
-  tile.append(el(`<div class="big"><b class="num">${st}</b><span>${weekly?"week":"day"}<br>streak</span></div>`));
-  tile.append(vizFor(h));
+  } else right = steps ? null : checkBtn(h);
+  const who = kind === "theirs" ? h.owner : S.me;
+  tile.append(headFor(h, steps ? `${stepCount(h, who)} today · ${goalText(h)}` : subFor(h, kind), right));
+  if (steps) tile.append(stepPills(h, who, kind !== "theirs"));
+  const left = el(`<div class="tleft"><div class="big"><b class="num">${st}</b><span>${weekly?"week":"day"}<br>streak</span></div></div>`);
+  const best = bestStreak(h), second = weekly ? `<b>${monthProg(h, k => levelOn(h, k)).done}</b> this month` : `<b>${weekDone(h, mondayOf(nowD()))}</b>/7 this week`;
+  left.append(el(`<div class="big-sub"><span>Best <b>${best}</b></span><span>${second}</span></div>`));
+  tile.append(left, vizFor(h));
+  if (size === "l") tile.append(largeHeat(h));
   return tile;
 }
 
 function vizFor(h, kind = vizOf(h), o = {}){
   const lvOf = o.lv || (k => levelOn(h, k));
-  const wrap = el(`<div class="viz"></div>`);
+  const wrap = el(`<div class="viz"></div>`); wrap.dataset.kind = kind;
   const stp = stepsOf(h) || ["1","2","3","4","5"];
   const sOf = o.sa || (k => stepArr(h.owner === US ? S.me : h.owner, h.id, k));
   const stepCol = i => `color-mix(in oklab, var(--b) ${Math.round(i / Math.max(1, stp.length - 1) * 100)}%, var(--a))`;
@@ -1119,7 +1300,7 @@ function vizFor(h, kind = vizOf(h), o = {}){
       const l = el(`<span class="sg-l"></span>`); l.textContent = name.trim().slice(0, 1).toUpperCase(); l.title = name; g.append(l);
       for (let d = N - 1; d >= 0; d--){
         const k = keyOf(daysAgo(d)), on = sOf(k).includes(i);
-        const c = el(`<i class="${d === 0 ? "now" : ""}"></i>`);
+        const c = el(`<i class="${d === 0 ? "now" : ""}"></i>`); c.dataset.k = k; c.dataset.s = i;
         if (on) c.style.background = stepCol(i);
         c.style.setProperty("--j", N - 1 - d);
         g.append(c);
@@ -1132,7 +1313,7 @@ function vizFor(h, kind = vizOf(h), o = {}){
   if (kind === "stack"){
     const N = 14, g = el(`<div class="v-stack"></div>`);
     for (let d = N - 1; d >= 0; d--){
-      const k = keyOf(daysAgo(d)), a = sOf(k), col = el(`<div class="${d === 0 ? "now" : ""}"></div>`);
+      const k = keyOf(daysAgo(d)), a = sOf(k), col = el(`<div class="${d === 0 ? "now" : ""}"></div>`); col.dataset.k = k;
       stp.forEach((_, i) => { const seg = el(`<i></i>`); if (a.includes(i)) seg.style.background = stepCol(i); col.append(seg); });
       if (a.length >= stp.length) col.classList.add("full");
       g.append(col);
@@ -1168,7 +1349,7 @@ function vizFor(h, kind = vizOf(h), o = {}){
     ms.slice(0,2).forEach((u,idx) => {
       for (let i = 13; i >= 0; i--){
         const k = keyOf(daysAgo(i)), on = did(u,k), both = ms.every(m => did(m,k));
-        const cell = el(`<i class="lane-cell"></i>`);
+        const cell = el(`<i class="lane-cell"></i>`); cell.dataset.k = k; cell.dataset.u = u;
         if (on){ cell.style.background = cols[idx]; cell.style.opacity = both ? 1 : .4; }
         lanes.append(cell);
       }
@@ -1186,7 +1367,7 @@ function vizFor(h, kind = vizOf(h), o = {}){
   if (kind === "grid"){
     const g = el(`<div class="v-grid"></div>`);
     for (let i = 44; i >= 0; i--){
-      const lv = lvOf(keyOf(daysAgo(i))), c = el(`<i class="${i===0?'now':''}"></i>`);
+      const lv = lvOf(keyOf(daysAgo(i))), c = el(`<i class="${i===0?'now':''}"></i>`); c.dataset.k = keyOf(daysAgo(i));
       if (lv){ c.style.background = i % 3 ? "var(--a)" : "var(--b)"; c.style.opacity = lv === 2 ? 1 : .4; }
       g.append(c);
     }
@@ -1199,8 +1380,8 @@ function vizFor(h, kind = vizOf(h), o = {}){
     const runs = []; let run = 0;
     for (let i = 40; i >= 0; i--){ const k = keyOf(daysAgo(i)); run = lvOf(k) === 2 ? run + 1 : (!o.lv && isRest(h,k)) ? run : 0; if (i <= 20) runs.push(run); }
     const max = Math.max(3, ...runs);
-    runs.forEach(r => {
-      const b = el(`<i></i>`);
+    runs.forEach((r, j) => {
+      const b = el(`<i></i>`); b.dataset.k = keyOf(daysAgo(20 - j));
       if (r){ const p = r/max; b.style.height = Math.max(10, p*100) + "%"; b.style.background = `color-mix(in oklab, var(--b) ${Math.round(p*100)}%, var(--a))`; }
       g.append(b);
     });
@@ -1210,7 +1391,7 @@ function vizFor(h, kind = vizOf(h), o = {}){
   }
   if (kind === "beads"){
     const g = el(`<div class="v-beads"></div>`);
-    for (let i = 6; i >= 0; i--) g.append(el(`<i class="${lvOf(keyOf(daysAgo(i)))===2?'on':''}${i===0?' now':''}"></i>`));
+    for (let i = 6; i >= 0; i--) g.append(el(`<i data-k="${keyOf(daysAgo(i))}" class="${lvOf(keyOf(daysAgo(i)))===2?'on':''}${i===0?' now':''}"></i>`));
     wrap.append(g);
     wrap.append(el(`<div class="axis pad-axis"><span>Last 7 days</span><i></i><span>Today</span></div>`));
     return wrap;
@@ -1225,7 +1406,7 @@ function vizFor(h, kind = vizOf(h), o = {}){
       const k = keyOf(new Date(y, mo, d, 12));
       const later = k > today() && !o.lv, on = !later && lvOf(k) === 2;
       if (on) count++;
-      g.append(el(`<i class="${on?'on':''}${later?' later':''}${k===today()?' now':''}">${d}</i>`));
+      g.append(el(`<i data-k="${k}" class="${on?'on':''}${later?' later':''}${k===today()?' now':''}">${d}</i>`));
     }
     wrap.append(g);
     wrap.append(el(`<div class="axis pad-axis"><span>${now.toLocaleString("en",{month:"long"})}</span><i></i><span>${count} days</span></div>`));
@@ -1259,14 +1440,14 @@ function vizFor(h, kind = vizOf(h), o = {}){
     wrap.append(el(`<div class="axis pad-axis"><span>${done}</span><i></i><span>${ongoing ? "this month" : goal + " goal"}</span></div>`));
   } else if (kind === "bars"){
     const g = el(`<div class="v-bars"></div>`);
-    for (let i = 20; i >= 0; i--) g.append(el(`<i class="${lvOf(keyOf(daysAgo(i)))===2?'on':''}"></i>`));
+    for (let i = 20; i >= 0; i--) g.append(el(`<i data-k="${keyOf(daysAgo(i))}" class="${lvOf(keyOf(daysAgo(i)))===2?'on':''}"></i>`));
     wrap.append(g);
     wrap.append(el(`<div class="axis pad-axis"><span>3 wks</span><i></i><span>Today</span></div>`));
   } else if (kind === "squares"){
     const g = el(`<div class="v-sq"></div>`);
     for (let i = 6; i >= 0; i--){
       const lv = lvOf(keyOf(daysAgo(i)));
-      const sq = el(`<i></i>`);
+      const sq = el(`<i></i>`); sq.dataset.k = keyOf(daysAgo(i));
       if (lv) { const p = Math.round(((6-i)/6)*100); sq.style.background = `color-mix(in oklab, var(--b) ${p}%, var(--a))`; sq.style.opacity = lv === 2 ? 1 : .45; }
       g.append(sq);
     }
@@ -1277,7 +1458,7 @@ function vizFor(h, kind = vizOf(h), o = {}){
     for (let i = 0; i < 7; i++){
       const d = new Date(mon); d.setDate(d.getDate()+i);
       const k = keyOf(d), isT = k === today(), future = k > today() && !o.lv, lv = future ? 0 : lvOf(k);
-      const dot = el(`<i class="${isT?'now':''}"></i>`);
+      const dot = el(`<i class="${isT?'now':''}"></i>`); dot.dataset.k = k;
       if (lv){ const p = Math.round(i/6*100); dot.style.background = `color-mix(in oklab, var(--b) ${p}%, var(--a))`; dot.style.opacity = lv===2?1:.45; }
       else if (future) dot.style.opacity = .45;
       g.append(dot);
@@ -1289,8 +1470,8 @@ function vizFor(h, kind = vizOf(h), o = {}){
 }
 
 function sharedTile(h){
-  const c = colorOf(h), st = streak(h), t = today(), weekly = perWeek(h) < 7;
-  const tile = el(`<article class="tile wide${h.id === popId ? " pop" : ""}" style="--a:${c.a};--b:${c.b}"></article>`);
+  const c = colorOf(h), st = streak(h), t = today(), weekly = perWeek(h) < 7, size = sizeOf(h, "ours");
+  const tile = el(`<article class="tile wide shared sz-${size}${h.id === popId ? " pop" : ""}" style="--a:${c.a};--b:${c.b}"></article>`);
   tile.append(headFor(h, weekly ? `Together · ${subFor(h)}` : `Together · ${goalText(h)}`, stepsOf(h) ? null : checkBtn(h)));
   if (stepsOf(h)) tile.append(stepPills(h, S.me, true));
   const mid = el(`<div class="big"><b class="num">${st}</b><span>${weekly?"week":"day"} streak<br>together</span></div>`);
@@ -1304,6 +1485,7 @@ function sharedTile(h){
   if (ms.length >= 2 && ms.every(u => didOn(u,h.id,t))) chips.append(el(`<span class="sync">In sync today</span>`));
   else if (ms.length < 2) chips.append(el(`<span class="who">Waiting for your partner to join</span>`));
   tile.append(chips);
+  if (size === "l") tile.append(largeHeat(h));
   return tile;
 }
 
@@ -1395,9 +1577,31 @@ function usView(){
 }
 
 // ---------- sheets ----------
+const canMorph = () => !!document.startViewTransition && !reduced;
+function morphOpen(tile, h){
+  if (S.customize) return;
+  if (!tile || !canMorph() || sheetOpen) return openDetail(h);
+  tile.style.viewTransitionName = "morph";
+  document.documentElement.classList.add("vt-morph");
+  const vt = document.startViewTransition(() => {
+    tile.style.viewTransitionName = "";
+    openDetail(h);
+    const sh = sheetOpen?.querySelector(".sheet");
+    if (sh){ sh.style.viewTransitionName = "morph"; sheetOpen.dataset.morph = tile.dataset.hid || ""; }
+  });
+  vt.finished.finally(() => { document.documentElement.classList.remove("vt-morph"); const sh = sheetOpen?.querySelector(".sheet"); if (sh) sh.style.viewTransitionName = ""; });
+}
 function closeSheet(instant){
   const s = sheetOpen; if (!s) return; sheetOpen = null;
   if (instant || reduced){ s.remove(); return; }
+  const back = s.dataset.morph && canMorph() ? document.querySelector(`.board > [data-hid="${s.dataset.morph}"]`) : null;
+  if (back && back.getBoundingClientRect().bottom > 0 && back.getBoundingClientRect().top < innerHeight){
+    const sh = s.querySelector(".sheet"); sh.style.transform = ""; sh.style.viewTransitionName = "morph";
+    document.documentElement.classList.add("vt-morph");
+    const vt = document.startViewTransition(() => { s.remove(); back.style.viewTransitionName = "morph"; });
+    vt.finished.finally(() => { back.style.viewTransitionName = ""; document.documentElement.classList.remove("vt-morph"); });
+    return;
+  }
   s.classList.add("closing");
   const sh = s.querySelector(".sheet"); sh.classList.remove("settle","dragging"); sh.style.transform = "";
   setTimeout(() => s.remove(), 300);
@@ -1525,7 +1729,7 @@ function stepMap(h, y, mo){
   st.forEach((name, i) => {
     const l = el(`<span class="hr"></span>`); l.textContent = name; g.append(l);
     for (let d = 1; d <= dim; d++){
-      const k = keyOf(new Date(y, mo, d, 12)), c = el(`<i></i>`);
+      const k = keyOf(new Date(y, mo, d, 12)), c = el(`<i></i>`); c.dataset.k = k; c.dataset.s = i;
       if (k > today()) c.className = "fut";
       else if (stepArr(S.me, h.id, k).includes(i)) c.style.background = `color-mix(in oklab, var(--b) ${Math.round(i / Math.max(1, st.length - 1) * 100)}%, var(--a))`;
       else if (isRest(h, k)) c.className = "rest";
@@ -1614,7 +1818,7 @@ function openDetail(h, pickDay){
       <div class="dstat"><b>${mDone}<small>/ ${mEl}</small></b><span>This month · ${Math.round(mDone / mEl * 100)}%</span></div>
       <div class="dstat"><b>${keys.length}</b><span>Total days done</span></div>`;
   };
-  const d = el(`<div style="--a:${c.a};--b:${c.b}">
+  const d = el(`<div data-hid-ctx="${h.id}" style="--a:${c.a};--b:${c.b}">
     <div class="h-head"><div class="h-title"><b></b><small></small></div></div>
     <div class="dstats">${statsHTML()}</div>
     <div id="d-seg"></div><div id="d-panel"></div></div>`);
@@ -1846,7 +2050,7 @@ function openManage(){
   const resting = restOf(S.me, today());
   const d = el(`<div><h3>Your habits</h3><div class="list" id="m-list"></div>
     <div id="m-paused"></div>
-    <p class="hint" style="margin:10px 2px 0">Tip: press and hold a habit on the main screen, then drag it to change the order.</p><div class="btn-row" style="margin-top:16px"><button class="btn" id="m-add">Add habit</button></div>
+    <button class="row" type="button" id="m-cz" style="margin-top:12px"><div><b>Customise board</b><small>Move habits, change tile sizes, choose which cards show</small></div></button><div class="btn-row" style="margin-top:16px"><button class="btn" id="m-add">Add habit</button></div>
     <div class="field" style="margin:26px 0 0"><span class="lbl">Rest day</span>
       <button class="row" id="m-rest" type="button"><div><b></b><small></small></div></button></div>
     <div class="field" style="margin:18px 0 0"><span class="lbl">My day ends at</span><div id="m-dayend"></div></div>
@@ -1874,6 +2078,7 @@ function openManage(){
   act.forEach(h => list.append(row(h)));
   if (pz.length){ const p = d.querySelector("#m-paused"); p.append(el(`<div class="field" style="margin:18px 0 8px"><span class="lbl">Paused</span></div>`)); const l = el(`<div class="list"></div>`); pz.forEach(h => l.append(row(h))); p.append(l); }
   d.querySelector("#m-add").onclick = openAdd;
+  d.querySelector("#m-cz").onclick = enterCustomise;
   if (!S.demo){
     const acc = d.querySelector("#m-account");
     if (!partnerId()){ acc.append(el(`<div class="field" style="margin:22px 0 0"><span class="lbl">Invite your wife</span></div>`)); const r = el(`<div class="invite-row" style="margin-top:0"></div>`); r.append(...inviteButtons()); acc.append(r); }
@@ -1932,7 +2137,50 @@ function saveMine(mutate){
   S.progress = {...S.progress, [S.me]: next};
   if (!S.demo) queue(() => store.doc("progress/"+S.me).set(next));
 }
-function toggleDay(hid, k){
+let moments = [], momBD = false, momBL = {};
+function runMoments(){
+  const list = moments; moments = [];
+  if (!list.length || reduced) return;
+  requestAnimationFrame(() => list.forEach(m => {
+    if (m.type === "ping"){
+      document.querySelectorAll(`.faces img:nth-child(2), .board > [data-hid="${m.hid}"] .who img`).forEach(im => { if (m.who && !im.closest(".faces") && im.closest(".who")?.textContent && !im.closest(".who").textContent.startsWith(nameOf(m.who))) return; im.classList.remove("ping"); void im.offsetWidth; im.classList.add("ping"); });
+    }
+    if (m.type === "sync"){ const t = document.querySelector(`.board > [data-hid="${m.hid}"]`); if (t) burst(t, 16); }
+    if (m.type === "day"){ celebrateDay(); }
+  }));
+}
+function burst(target, n = 14){
+  const r = target.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + Math.min(r.height / 2, 90);
+  const cs = getComputedStyle(target), a = cs.getPropertyValue("--a") || "#a78bfa", b = cs.getPropertyValue("--b") || "#60a5fa";
+  const layer = el(`<div class="fx-layer" aria-hidden="true"></div>`); document.body.append(layer);
+  for (let i = 0; i < n; i++){
+    const ang = (i / n) * Math.PI * 2 + Math.random() * .4, dist = 50 + Math.random() * 60;
+    const d = el(`<i></i>`); d.style.left = cx + "px"; d.style.top = cy + "px"; d.style.background = i % 2 ? a : b;
+    layer.append(d);
+    d.animate([{transform: "translate(-50%,-50%) scale(.4)", opacity: 1}, {transform: `translate(calc(-50% + ${Math.cos(ang) * dist}px), calc(-50% + ${Math.sin(ang) * dist}px)) scale(1)`, opacity: 1, offset: .6}, {transform: `translate(calc(-50% + ${Math.cos(ang) * dist * 1.15}px), calc(-50% + ${Math.sin(ang) * dist * 1.15 + 16}px)) scale(.6)`, opacity: 0}], {duration: 900 + Math.random() * 300, easing: "cubic-bezier(.2,.8,.3,1)", fill: "forwards"});
+  }
+  setTimeout(() => layer.remove(), 1400);
+}
+function celebrateDay(){
+  const hero = document.querySelector('.board > [data-key="hero"]') || document.querySelector(".headline");
+  if (hero) burst(hero, 22);
+  const pill = el(`<div class="day-done" role="status"><span>${ICON.flame}</span>All done today</div>`);
+  document.body.append(pill);
+  pill.animate([{opacity: 0, transform: "translate(-50%, 12px) scale(.9)"}, {opacity: 1, transform: "translate(-50%, 0) scale(1)", offset: .18}, {opacity: 1, transform: "translate(-50%, 0) scale(1)", offset: .82}, {opacity: 0, transform: "translate(-50%, -8px) scale(.96)"}], {duration: 2200, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards"});
+  setTimeout(() => pill.remove(), 2300);
+}
+function allMineDone(){
+  const t = today(); if (restOf(S.me, t)) return false;
+  const hs = S.habits.filter(h => (h.owner === S.me || h.owner === US) && perWeek(h) >= 7 && !isRest(h, t));
+  return hs.length > 0 && hs.every(h => didOn(S.me, h.id, t));
+}
+function noteMoments(beforeDone, beforeLv){
+  if (!beforeDone && allMineDone()) moments.push({type: "day"});
+  S.habits.filter(h => h.owner === US).forEach(h => { if (beforeLv[h.id] !== 2 && levelOn(h, today()) === 2 && members().length >= 2) moments.push({type: "sync", hid: h.id}); });
+}
+const lvSnapshot = () => Object.fromEntries(S.habits.filter(h => h.owner === US).map(h => [h.id, levelOn(h, today())]));
+function toggleDay(hid, k){ momBD = allMineDone(); momBL = lvSnapshot(); return toggleDayInner(hid, k); }
+function toggleDayInner(hid, k){
   let nowOn = false;
   saveMine(n => {
     const m = n.days[hid] = n.days[hid] || {}, st = stepsOf(HB[hid]);
@@ -1940,12 +2188,13 @@ function toggleDay(hid, k){
     if (full) delete m[k]; else { m[k] = st ? st.map((_, i) => i) : true; nowOn = true; }
   });
   if (nowOn && k === today()) popId = hid;
+  noteMoments(momBD, momBL);
   render();
 }
 function toggle(hid){ toggleDay(hid, today()); }
 function toggleStep(hid, k, i){
   const st = stepsOf(HB[hid]); if (!st) return toggleDay(hid, k);
-  let full = false;
+  let full = false; momBD = allMineDone(); momBL = lvSnapshot();
   saveMine(n => {
     const m = n.days[hid] = n.days[hid] || {};
     let a = m[k] === true ? st.map((_, j) => j) : Array.isArray(m[k]) ? m[k].filter(j => j < st.length) : [];
@@ -1954,6 +2203,7 @@ function toggleStep(hid, k, i){
     full = a.length >= st.length;
   });
   if (full && k === today()) popId = hid;
+  noteMoments(momBD, momBL);
   render();
 }
 function toggleRest(k){ saveMine(n => { n.rest = n.rest || {}; if (n.rest[k]) delete n.rest[k]; else n.rest[k] = true; }); render(); }
@@ -2028,6 +2278,9 @@ function startDemo(){
   S.progress["demo-me"].rest = {[keyOf(daysAgo(3))]: true, [keyOf(daysAgo(17))]: true};
   syncActive();
   S.ready = {habits:true, progress:true};
+  // demo only: lets a test simulate the partner checking something off
+  window.__demoSet = (hid, patch, size) => { S.allHabits = S.allHabits.map(h => h.id === hid ? {...h, ...patch} : h); if (size) setPref(q => { q.sizes = {...(q.sizes||{}), [hid]: size}; }); syncActive(); render(); };
+  window.__demoPartner = (hid, step) => { const prev = structuredClone(S.progress); const d = S.progress["demo-partner"].days[hid] = S.progress["demo-partner"].days[hid] || {}; const k = today(); if (step === undefined) d[k] = true; else d[k] = [...new Set([...(Array.isArray(d[k]) ? d[k] : []), step])]; partnerActivity(prev, S.progress); render(); };
   render();
 }
 
@@ -2133,6 +2386,7 @@ function subscribe(){
   store.collection("habits").orderBy("createdAt").onSnapshot(snap => { S.allHabits = snap.docs.map(d => ({id:d.id, ...d.data()})); syncActive(); S.ready.habits = true; clearTimeout(timer); render(); }, fail);
   store.collection("progress").onSnapshot(snap => {
     const p = {}; snap.docs.forEach(d => p[d.id] = d.data());
+    if (S.ready.progress) partnerActivity(S.progress, p);
     const mine = p[S.me];
     const needsWrite = !snap.metadata.fromCache && (!mine || mine.name !== S.meInfo.name || (mine.photo || "") !== S.meInfo.photo);
     if (!p[S.me]) p[S.me] = {days:{}};
@@ -2144,6 +2398,20 @@ function subscribe(){
   }, fail);
   store.doc("nudges/"+S.me).onSnapshot(s => { S.nudge = s.exists ? s.data() : null; if (S.ready.habits) render(); }, () => {});
   store.doc("settings/jar").onSnapshot(s => { S.jar = s.exists ? s.data() : null; if (S.ready.habits) render(); }, () => {});
+}
+function partnerActivity(prev, next){
+  const pid = partnerId() || Object.keys(next).find(id => id !== S.me); if (!pid || !prev[pid]) return;
+  const t = today(), was = {progress: prev}, now = {progress: next};
+  const with_ = (state, fn) => { const keep = S.progress; S.progress = state.progress; try { return fn(); } finally { S.progress = keep; } };
+  S.habits.filter(h => h.owner === pid || h.owner === US).forEach(h => {
+    const a = with_(was, () => stepArr(pid, h.id, t).length), b = with_(now, () => stepArr(pid, h.id, t).length);
+    if (b > a){
+      const full = with_(now, () => didOn(pid, h.id, t)), st = stepsOf(h);
+      moments.push({type: "ping", hid: h.id, who: pid});
+      toast(st && !full ? `${nameOf(pid)} did ${st[with_(now, () => stepArr(pid, h.id, t)).filter(i => !with_(was, () => stepArr(pid, h.id, t)).includes(i))[0]] || "a step"} · ${h.title}` : `${nameOf(pid)} finished ${h.title}`);
+      if (h.owner === US && with_(was, () => levelOn(h, t)) !== 2 && with_(now, () => levelOn(h, t)) === 2) moments.push({type: "sync", hid: h.id});
+    }
+  });
 }
 async function boot(){
   const cfg = window.FIREBASE_CONFIG;
@@ -2162,106 +2430,253 @@ async function boot(){
     document.getElementById("app").innerHTML = '<p class="loading">Couldn\'t reach the server. Check your connection and reload.</p>';
   }
 }
-// ---------- drag to reorder ----------
-(function dragReorder(){
-  let cand = null, timer = 0, drag = null, raf = 0, suppressClick = false;
-  const HOLD = 380, SLOP = 8;
-  const pageRect = el => { const r = el.getBoundingClientRect(); return {x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height}; };
-  const groupItems = (board, group) => [...board.children].filter(c => c.dataset.group === group);
+// ---------- gestures ----------
+// One place decides what a touch means: a vertical move scrolls the page, a sideways move on a habit
+// swipes it, a sideways move elsewhere changes screen, holding still on a chart scrubs it, and holding
+// still on a habit picks it up to move. In Customise mode a habit moves as soon as you drag it.
+const UNDO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>';
+function tipFor(h, k, s, u){
+  if (!h || !k) return k || "";
+  const ds = dk(k).toLocaleDateString("en", {weekday: "short", day: "numeric", month: "short"});
+  if (k > today()) return `${ds} · upcoming`;
+  const st = stepsOf(h), owner = h.owner === US ? S.me : h.owner;
+  if (u) return `${ds} · ${nameOf(u)}: ${didOn(u, h.id, k) ? "done" : "not done"}`;
+  if (st && s !== undefined && s !== null && s !== ""){ const on = stepArr(owner, h.id, k).includes(+s); return `${ds} · ${st[+s]} ${on ? "done" : isRest(h, k) ? "(rest day)" : "missed"}`; }
+  if (st){ const a = stepArr(owner, h.id, k), miss = st.filter((_, i) => !a.includes(i)); return `${ds} · ${a.length}/${st.length}${miss.length && a.length ? " · missed " + miss.join(", ") : ""}${!a.length && isRest(h, k) ? " · rest day" : ""}`; }
+  const lv = levelOn(h, k);
+  return `${ds} · ${lv === 2 ? (h.owner === US ? "both done" : "done") : lv === 1 ? "one of you" : isRest(h, k) ? "rest day" : "not done"}`;
+}
+(function gestures(){
+  const HOLD = 380, SCRUB_HOLD = 200, SLOP = 8, VIEWS = ["today", "week", "us"];
+  const SCRUB_SEL = ".p-heat, .v-grid, .v-sgrid, .smap, .v-sq, .v-dots, .v-bars, .v-wave, .v-beads, .lanes, .v-stack, .v-month:not(.cal)";
+  let g = null, drag = null, raf = 0, suppressClick = false, hoverCell = null;
+  const tip = el(`<div class="scrub-tip" aria-hidden="true" hidden></div>`); document.body.append(tip);
+  const pageRect = n => { const r = n.getBoundingClientRect(); return {x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height}; };
+  const clearTimers = () => { if (!g) return; clearTimeout(g.holdT); clearTimeout(g.scrubT); clearTimeout(g.pressT); g.tile?.classList.remove("pressing"); };
+  const swallowClick = () => { suppressClick = true; setTimeout(() => suppressClick = false, 400); };
+
   document.addEventListener("pointerdown", e => {
-    if (e.button > 0 || S.dragging || sheetOpen) return;
-    const tile = e.target.closest(".board > [data-hid]");
-    if (!tile || e.target.closest("button:not(.h-title):not(.p-title), input, a")) return;
-    cand = {tile, x: e.clientX, y: e.clientY, id: e.pointerId};
-    clearTimeout(timer);
-    timer = setTimeout(() => start(e), HOLD);
-    tile.classList.add("pressing");
+    if (e.button > 0 || drag || S.dragging) return;
+    const inSheet = !!e.target.closest(".sheet");
+    if (!inSheet && e.target.closest(".scrim, .nav")) return;
+    const tile = inSheet ? null : e.target.closest(".board > [data-hid]");
+    const scrubEl = e.target.closest(SCRUB_SEL);
+    const onCtl = !!e.target.closest("button:not(.h-title):not(.p-title), input, textarea, a, .cz, .seg");
+    if (inSheet && !scrubEl) return;
+    g = {x0: e.clientX, y0: e.clientY, t0: performance.now(), tile, scrubEl, onCtl, inSheet, mode: null, type: e.pointerType};
+    if (S.customize) { if (!tile || onCtl) g = null; return; }
+    if (scrubEl) g.scrubT = setTimeout(() => { if (g && !g.mode) startScrub(); }, SCRUB_HOLD);
+    if (tile && !onCtl && !scrubEl){
+      g.pressT = setTimeout(() => g?.tile?.classList.add("pressing"), 110);
+      g.holdT = setTimeout(() => { if (g && !g.mode) startDrag(); }, HOLD);
+    }
   });
   document.addEventListener("pointermove", e => {
-    if (drag){ drag.px = e.clientX; drag.py = e.clientY; if (!drag.moved && Math.hypot(drag.px - drag.sx, drag.py - drag.sy) > 24) drag.moved = true; move(); return; }
-    if (cand && Math.hypot(e.clientX - cand.x, e.clientY - cand.y) > SLOP) cancelCand();
+    if (drag){ drag.px = e.clientX; drag.py = e.clientY; if (!drag.moved && Math.hypot(drag.px - drag.sx, drag.py - drag.sy) > 24) drag.moved = true; dragMove(); return; }
+    if (!g){ if (e.pointerType === "mouse") hover(e); return; }
+    const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+    g.lx = e.clientX; g.lt = performance.now(); g.vx = g.vx === undefined ? 0 : dx - (g.ldx || 0); g.ldx = dx;
+    if (g.mode === "scrub") return scrubAt(e.clientX, e.clientY);
+    if (g.mode === "swipe") return swipeMove(dx);
+    if (g.mode === "page") return pageMove(dx);
+    if (Math.hypot(dx, dy) < SLOP) return;
+    clearTimers();
+    if (S.customize){ if (g.tile) startDrag(); else g = null; return; }
+    if (Math.abs(dx) > Math.abs(dy) * 1.25){
+      if (g.tile && !g.onCtl) startSwipe(e);
+      else if (!g.tile && !g.inSheet && !e.target.closest(".lay-row, .cz-panel, .rings, .seg")) startPage();
+      else g = null;
+    } else g = null; // vertical: let the page scroll
   });
-  const end = () => { cancelCand(); if (drag) drop(); };
-  document.addEventListener("pointerup", end);
-  document.addEventListener("pointercancel", () => { if (drag) drop(); else cancelCand(); });
-  document.addEventListener("touchmove", e => { if (drag) e.preventDefault(); }, {passive: false});
-  document.addEventListener("contextmenu", e => { if (drag || cand) e.preventDefault(); });
+  const finish = e => {
+    if (drag){ dragDrop(); return; }
+    if (!g) return;
+    clearTimers();
+    const v = (g.vx || 0);
+    if (g.mode === "scrub") endScrub();
+    else if (g.mode === "swipe") swipeEnd(v);
+    else if (g.mode === "page") pageEnd(v);
+    g = null;
+  };
+  document.addEventListener("pointerup", finish);
+  document.addEventListener("pointercancel", finish);
+  document.addEventListener("touchmove", e => { if (drag || (g && g.mode)) e.preventDefault(); }, {passive: false});
+  document.addEventListener("contextmenu", e => { if (drag || (g && (g.mode || g.tile))) e.preventDefault(); });
   document.addEventListener("click", e => { if (suppressClick){ e.stopPropagation(); e.preventDefault(); suppressClick = false; } }, true);
-  function cancelCand(){ clearTimeout(timer); cand?.tile.classList.remove("pressing"); cand = null; }
-  function start(){
-    if (!cand) return;
-    const tile = cand.tile, board = tile.parentElement, r = pageRect(tile);
+  window.addEventListener("scroll", () => { if (g && !g.mode) { clearTimers(); g = null; } hideTip(); }, {passive: true});
+
+  // ----- swipe a habit to tick or undo -----
+  function startSwipe(){
+    const t = g.tile, h = HB[t.dataset.hid]; if (!h) { g = null; return; }
+    g.mode = "swipe"; g.h = h; g.steps = stepsOf(h);
+    const a = g.steps ? stepArr(S.me, h.id, today()) : [];
+    g.done = didOn(S.me, h.id, today()); g.partial = !!(g.steps && a.length);
+    g.w = t.getBoundingClientRect().width;
+    g.fx = el(`<div class="swipe-fx" aria-hidden="true"><span></span></div>`); t.append(g.fx); t.classList.add("swiping");
+  }
+  function swipeMove(dx){
+    const can = dx > 0 ? !g.done : (g.done || g.partial);
+    const d = can ? dx : dx * .18, prog = Math.min(1, Math.abs(d) / (g.w * .32));
+    g.tile.style.transform = `translateX(${d * .16}px)`;
+    g.fx.style.setProperty("--p", Math.min(1, Math.abs(d) / g.w).toFixed(3));
+    g.fx.classList.toggle("left", dx < 0);
+    const armed = can && prog >= 1;
+    if (armed !== g.armed){ g.armed = armed; g.fx.classList.toggle("armed", armed); if (armed) try { navigator.vibrate?.(8); } catch {} }
+    const icon = dx < 0 ? UNDO_ICON : ICON.tick; if (g.icon !== icon){ g.icon = icon; g.fx.querySelector("span").innerHTML = icon; }
+    g.dx = dx; g.can = can;
+  }
+  function swipeEnd(v){
+    const t = g.tile, fx = g.fx, h = g.h, dir = g.dx > 0 ? 1 : -1, steps = g.steps;
+    const go = g.armed || (g.can && Math.abs(v) > 18 && Math.abs(g.dx) > 40);
+    const cur = t.style.transform; t.style.transform = ""; t.classList.remove("swiping");
+    if (!reduced) t.animate([{transform: cur || "none"}, {transform: `translateX(${go ? dir * 6 : 0}px)`, offset: .4}, {transform: "none"}], {duration: 340, easing: "cubic-bezier(.2,.9,.3,1.2)"});
+    fx.classList.add("out"); setTimeout(() => fx.remove(), 260);
+    swallowClick();
+    if (!go) return;
+    setTimeout(() => {
+      const t2 = today();
+      if (steps){
+        const a = stepArr(S.me, h.id, t2);
+        if (dir > 0){ const nxt = steps.findIndex((_, i) => !a.includes(i)); if (nxt >= 0) toggleStep(h.id, t2, nxt); }
+        else if (a.length) toggleStep(h.id, t2, a[a.length - 1]);
+      } else toggle(h.id);
+    }, 140);
+  }
+
+  // ----- swipe between Today / Stats / Us -----
+  function startPage(){ g.mode = "page"; g.board = document.querySelector(".board"); g.idx = VIEWS.indexOf(S.view); }
+  function pageMove(dx){
+    const can = (dx < 0 && g.idx < VIEWS.length - 1) || (dx > 0 && g.idx > 0);
+    const d = can ? dx * .55 : dx * .12;
+    g.board.style.transform = `translateX(${d}px)`; g.board.style.opacity = String(1 - Math.min(.4, Math.abs(d) / 520));
+    g.dx = dx; g.can = can;
+  }
+  function pageEnd(v){
+    const b = g.board, go = g.can && (Math.abs(g.dx) > 80 || Math.abs(v) > 14), dir = g.dx < 0 ? 1 : -1, idx = g.idx;
+    swallowClick();
+    if (!go){ const cur = b.style.transform; b.style.transform = ""; b.style.opacity = ""; if (!reduced) b.animate([{transform: cur || "none"}, {transform: "none"}], {duration: 300, easing: "cubic-bezier(.2,.9,.3,1.1)"}); return; }
+    const cur = b.style.transform;
+    const out = reduced ? null : b.animate([{transform: cur || "none", opacity: b.style.opacity || 1}, {transform: `translateX(${-dir * 70}px)`, opacity: 0}], {duration: 150, easing: "ease-in", fill: "forwards"});
+    const switchTo = () => { S.view = VIEWS[idx + dir]; closeSheet(true); animMode = dir > 0 ? "slide-left" : "slide-right"; render(); };
+    if (out) out.onfinish = switchTo; else switchTo();
+  }
+
+  // ----- scrub charts -----
+  function startScrub(){ g.mode = "scrub"; g.tile?.classList.remove("pressing"); clearTimeout(g.holdT); try { navigator.vibrate?.(6); } catch {} scrubAt(g.x0, g.y0); }
+  function cellNear(cont, x, y){
+    const at = document.elementFromPoint(x, y)?.closest("[data-k]");
+    if (at && cont.contains(at)) return at;
+    let best = null, bd = 1e9;
+    cont.querySelectorAll("[data-k]").forEach(c => { const r = c.getBoundingClientRect(), d = Math.hypot(r.left + r.width / 2 - x, (r.top + r.height / 2 - y) * 1.5); if (d < bd){ bd = d; best = c; } });
+    return best;
+  }
+  function showTip(cell, cont){
+    const hid = cont.closest("[data-hid]")?.dataset.hid || cont.closest("[data-hid-ctx]")?.dataset.hidCtx;
+    tip.textContent = tipFor(HB[hid], cell.dataset.k, cell.dataset.s, cell.dataset.u);
+    tip.hidden = false;
+    const r = cell.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+    const left = Math.max(8, Math.min(innerWidth - tw - 8, r.left + r.width / 2 - tw / 2));
+    let top = r.top - th - 10; if (top < 8) top = r.bottom + 10;
+    tip.style.transform = `translate(${left}px, ${top}px)`;
+    tip.classList.add("on");
+  }
+  function hideTip(){ tip.classList.remove("on"); hoverCell?.classList.remove("scrub-on"); hoverCell = null; }
+  function scrubAt(x, y){
+    const cell = cellNear(g.scrubEl, x, y); if (!cell) return;
+    if (g.cell !== cell){ g.cell?.classList.remove("scrub-on"); cell.classList.add("scrub-on"); g.cell = cell; if (g.type !== "mouse") try { navigator.vibrate?.(3); } catch {} }
+    showTip(cell, g.scrubEl);
+  }
+  function endScrub(){ g.cell?.classList.remove("scrub-on"); tip.classList.remove("on"); swallowClick(); }
+  function hover(e){
+    const cell = e.target.closest?.("[data-k]"), cont = cell?.closest(SCRUB_SEL);
+    if (!cell || !cont){ if (hoverCell) hideTip(); return; }
+    if (cell === hoverCell) return;
+    hoverCell?.classList.remove("scrub-on"); hoverCell = cell; cell.classList.add("scrub-on"); showTip(cell, cont);
+  }
+
+  // ----- pick up and move (reorder, or drop into another section) -----
+  const MOVABLE = ["mine", "ours"];
+  function startDrag(){
+    if (!g || !g.tile) return;
+    const tile = g.tile, board = tile.parentElement, r = pageRect(tile), h = HB[tile.dataset.hid];
     S.dragging = true;
-    drag = {tile, board, group: tile.dataset.group, grabX: cand.x + scrollX - r.x, grabY: cand.y + scrollY - r.y, origin: r, px: cand.x, py: cand.y, sx: cand.x, sy: cand.y, moved: false};
+    const canCross = h && (h.owner === S.me || h.owner === US) && MOVABLE.includes(tile.dataset.group);
+    drag = {tile, board, h, group0: tile.dataset.group, groups: canCross ? MOVABLE : [tile.dataset.group], grabX: g.x0 + scrollX - r.x, grabY: g.y0 + scrollY - r.y, origin: r, px: g.x0, py: g.y0, sx: g.x0, sy: g.y0, moved: false};
     tile.classList.remove("pressing"); tile.classList.add("lifting");
     document.body.classList.add("reordering");
     try { navigator.vibrate?.(12); } catch {}
-    cand = null;
-    move(); tick();
+    g = null; hideTip();
+    dragMove(); tick();
   }
   function place(){
     const t = drag.tile, x = drag.px + scrollX - drag.grabX - drag.origin.x, y = drag.py + scrollY - drag.grabY - drag.origin.y;
     t.style.transform = `translate(${x}px, ${y}px) scale(1.035) rotate(${Math.max(-1.5, Math.min(1.5, x / 120))}deg)`;
   }
-  function move(){
+  function reflowSolo(board){
+    ["mine", "theirs"].forEach(group => {
+      const items = [...board.children].filter(c => c.dataset.group === group && !c.classList.contains("prow"));
+      items.forEach(t => { if (t.classList.contains("solo")) t.classList.remove("wide", "solo", "sz-w"), t.classList.add("sz-s"); });
+      let open = null;
+      items.forEach(t => { if (t.classList.contains("wide")){ if (open){ open.classList.add("wide", "solo", "sz-w"); open.classList.remove("sz-s"); open = null; } } else open = open ? null : t; });
+      if (open){ open.classList.add("wide", "solo", "sz-w"); open.classList.remove("sz-s"); }
+    });
+  }
+  function dragMove(){
     if (!drag) return;
     place();
-    const {tile, board, group} = drag;
-    const items = groupItems(board, group), px = drag.px, py = drag.py;
-    const over = items.find(c => { if (c === tile) return false; const r = c.getBoundingClientRect(); return px >= r.left && px <= r.right && py >= r.top && py <= r.bottom; });
-    if (!over) return;
-    const from = items.indexOf(tile), to = items.indexOf(over);
-    // FLIP: remember where everyone is, move the dragged tile in the DOM, then glide the rest into place
-    const before = new Map(items.map(c => [c, c.getBoundingClientRect()]));
-    if (to > from) over.after(tile); else over.before(tile);
-    reflowSolo(board, group);
-    items.forEach(c => {
+    const {tile, board, groups} = drag, px = drag.px, py = drag.py;
+    const cands = [...board.children].filter(c => c !== tile && (groups.includes(c.dataset.group) || groups.includes(c.dataset.dropgroup)));
+    const over = cands.find(c => { const r = c.getBoundingClientRect(); return px >= r.left && px <= r.right && py >= r.top && py <= r.bottom; });
+    if (!over || over === drag.lastOver) { if (!over) drag.lastOver = null; return; }
+    drag.lastOver = over;
+    const all = [...board.children], before = new Map(all.map(c => [c, c.getBoundingClientRect()]));
+    const targetGroup = over.dataset.group || over.dataset.dropgroup;
+    if (over.dataset.group){ if (tile.compareDocumentPosition(over) & Node.DOCUMENT_POSITION_FOLLOWING) over.after(tile); else over.before(tile); }
+    else if (over.classList.contains("sec")) over.after(tile);
+    else over.before(tile);
+    if (tile.dataset.group !== targetGroup){
+      tile.dataset.group = targetGroup;
+      [...board.querySelectorAll(`[data-key="note-${targetGroup}"]`)].forEach(n => n.classList.add("ghosted"));
+      tile.classList.toggle("into-shared", targetGroup === "ours" && drag.group0 !== "ours");
+    }
+    reflowSolo(board);
+    all.forEach(c => {
       if (c === tile) return;
-      const a = before.get(c), b = c.getBoundingClientRect();
-      const dx = a.left - b.left, dy = a.top - b.top;
-      if ((dx || dy) && !reduced) c.animate([{transform: `translate(${dx}px, ${dy}px)`}, {transform: "none"}], {duration: 320, easing: "cubic-bezier(.2,.9,.25,1.08)"});
+      const a = before.get(c), b = c.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top;
+      if ((Math.abs(dx) > .5 || Math.abs(dy) > .5) && !reduced) c.animate([{transform: `translate(${dx}px, ${dy}px)`}, {transform: "none"}], {duration: 320, easing: "cubic-bezier(.2,.9,.25,1.08)"});
     });
-    const keep = tile.style.transform; tile.style.transform = "none";
-    drag.origin = pageRect(tile); tile.style.transform = keep;
+    const keep = tile.style.transform; tile.style.transform = "none"; drag.origin = pageRect(tile); tile.style.transform = keep;
     place();
-  }
-  function reflowSolo(board, group){
-    // in the tiles layout, keep the "lone square spans the row" rule while things move
-    const items = groupItems(board, group);
-    items.forEach(t => { if (t.classList.contains("solo")) t.classList.remove("wide", "solo"); });
-    let open = null;
-    items.forEach(t => { if (t.classList.contains("wide")){ if (open){ open.classList.add("wide", "solo"); open = null; } } else if (!t.classList.contains("prow")) open = open ? null : t; });
-    if (open) open.classList.add("wide", "solo");
   }
   function tick(){
     if (!drag) return;
     const edge = 90, y = drag.py;
     const v = !drag.moved ? 0 : y < edge ? -(edge - y) / 6 : y > innerHeight - edge - 70 ? (y - (innerHeight - edge - 70)) / 6 : 0;
-    if (v){ scrollBy(0, v); move(); }
+    if (v){ scrollBy(0, v); dragMove(); }
     raf = requestAnimationFrame(tick);
   }
-  function drop(){
+  function dragDrop(){
     cancelAnimationFrame(raf);
-    const {tile, board, group} = drag;
-    const cur = tile.style.transform;
-    tile.style.transform = "";
-    tile.classList.remove("lifting");
+    const {tile, board, h, group0} = drag, group = tile.dataset.group;
+    const cur = tile.style.transform; tile.style.transform = ""; tile.classList.remove("lifting");
     if (!reduced) tile.animate([{transform: cur, zIndex: 50}, {transform: "translate(0,0) scale(.985)", offset: .75}, {transform: "none"}], {duration: 420, easing: "cubic-bezier(.2,.9,.3,1.25)"});
     document.body.classList.remove("reordering");
-    suppressClick = true; setTimeout(() => suppressClick = false, 350);
-    const ids = groupItems(board, group).map(c => c.dataset.hid);
+    swallowClick();
+    const orders = MOVABLE.concat(["theirs"]).map(gr => [gr, [...board.children].filter(c => c.dataset.group === gr).map(c => c.dataset.hid)]);
     drag = null;
-    saveOrder(ids);
-    setTimeout(() => { S.dragging = false; if (pendingRender){ pendingRender = false; render(); } }, 440);
+    let owner = null;
+    if (group !== group0 && h){ owner = group === "ours" ? US : S.me; toast(group === "ours" ? `"${h.title}" is now shared. You both see it.` : `"${h.title}" is now just yours.`); }
+    saveOrders(orders, h?.id, owner);
+    setTimeout(() => { S.dragging = false; if (pendingRender){ pendingRender = false; flipRender(); } }, 440);
   }
-  function saveOrder(ids){
-    const changed = [];
-    ids.forEach((id, i) => { const h = HB[id]; if (h && h.order !== i) changed.push([id, i]); });
-    if (!changed.length) return;
-    changed.forEach(([id, i]) => { HB[id].order = i; });
-    S.allHabits = S.allHabits.map(h => changed.some(([id]) => id === h.id) ? {...h, order: HB[h.id].order} : h);
+  function saveOrders(orders, movedId, owner){
+    const changes = {};
+    orders.forEach(([, ids]) => ids.forEach((id, i) => { const h = HB[id]; if (h && h.order !== i) (changes[id] = changes[id] || {}).order = i; }));
+    if (owner && movedId) (changes[movedId] = changes[movedId] || {}).owner = owner;
+    const ids = Object.keys(changes); if (!ids.length) return;
+    S.allHabits = S.allHabits.map(h => changes[h.id] ? {...h, ...changes[h.id]} : h);
     syncActive(); pendingRender = true;
-    if (!S.demo) changed.forEach(([id, i]) => queue(() => store.doc("habits/" + id).update({order: i})));
+    if (!S.demo) ids.forEach(id => queue(() => store.doc("habits/" + id).update(changes[id])));
   }
 })();
 function getMode(){ try { return localStorage.getItem("mode") || "auto"; } catch { return "auto"; } }
