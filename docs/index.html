@@ -242,6 +242,30 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .v-grid{grid-auto-rows:calc((100cqw - 78px) / 15)}
 .v-dots i{aspect-ratio:auto;width:min(24px, calc((100cqw - 52px) / 7));height:min(24px, calc((100cqw - 52px) / 7))}
 .wk i{aspect-ratio:auto;width:min(34px, calc((100cqw - 36px) / 7));height:min(34px, calc((100cqw - 36px) / 7))}
+/* step habits */
+.steps{display:grid;grid-template-columns:repeat(var(--n,5),minmax(0,1fr));gap:5px;margin-top:14px}
+.step{border:0;border-radius:12px;padding:10px 2px;background:var(--track);color:var(--muted);font-weight:600;font-size:12.5px;letter-spacing:-.01em;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:transform .25s var(--spring),background .25s,color .25s}
+.step:not(:disabled):active{transform:scale(.92)}
+.step.on{background:linear-gradient(135deg,var(--a),var(--b));color:#141016}
+.step:disabled{cursor:default}
+.steps.compact{display:flex;gap:4px;margin:0;flex:none}
+.steps.compact .step{width:26px;height:26px;padding:0;border-radius:50%;font-size:11px;display:grid;place-items:center}
+.tile.wide > .steps{margin-bottom:2px}
+.spick{margin-top:16px;padding:14px;border-radius:18px;background:var(--track)}
+.spick .steps{margin-top:8px}
+.spick .step{background:var(--tile)}
+.spick .step.on{background:linear-gradient(135deg,var(--a),var(--b))}
+.lbl{font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.v-month.cal i.picked{box-shadow:0 0 0 2px var(--tile),0 0 0 3.5px var(--b)}
+.sstats{margin-top:20px;display:grid;gap:10px}
+.srow{display:grid;grid-template-columns:minmax(0,72px) minmax(0,1fr) auto;gap:10px;align-items:center;font-size:13px}
+.sname{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sbar{height:10px;border-radius:99px;background:var(--track);overflow:hidden}
+.sbar b{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--a),var(--b))}
+.snum{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12.5px}
+.sfoot{margin:4px 0 0;color:var(--muted);font-size:13px;line-height:1.5}
+.sfoot b{color:var(--ink)}
+.linkish{border:0;background:none;padding:0;color:var(--ink);font:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px}
 /* catch-up card */
 .catchup{padding:16px}
 .cu-head{display:flex;align-items:flex-start;gap:10px}
@@ -480,6 +504,7 @@ function iconFor(t){
   if (/water|drink|hydrat/.test(s)) return ICON.drop;
   if (/exercis|gym|workout|lift|run|yoga|stretch|train/.test(s)) return ICON.dumbbell;
   if (/walk|step|hike/.test(s)) return ICON.steps;
+  if (/pray|salah|salat|namaz|mosque|masjid|quran|dhikr|adhkar/.test(s)) return ICON.moon;
   if (/sleep|bed|nap/.test(s)) return ICON.moon;
   if (/pray|meditat|gratitud|kind|love|date|hug/.test(s)) return ICON.heart;
   if (/cook|meal|eat|veg|fruit/.test(s)) return ICON.pot;
@@ -501,7 +526,8 @@ const US = "us";
 const SUGGEST = [
   {title:"Read 20 pages", who:"me"}, {title:"Exercise 30 minutes", who:"me", freq:3},
   {title:"Drink 2L of water", who:"me"}, {title:"Evening walk together", who:US},
-  {title:"No phones at dinner", who:US}, {title:"Cook at home", who:US, freq:3}
+  {title:"No phones at dinner", who:US}, {title:"Cook at home", who:US, freq:3},
+  {title:"Pray at the mosque", who:"me", steps:["Fajr","Dhuhr","Asr","Maghrib","Isha"]}
 ];
 
 // ---------- dates ----------
@@ -521,7 +547,25 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 
 function members(){ return Object.keys(S.progress); }
 function partnerId(){ return members().find(id => id !== S.me) || null; }
-function didOn(uid, hid, k){ return !!S.progress[uid]?.days?.[hid]?.[k]; }
+// habits with steps (e.g. 5 prayers) store a list of the steps done that day;
+// the day only counts as done when every step is done
+const HB = {};
+const stepsOf = h => Array.isArray(h?.steps) && h.steps.length ? h.steps : null;
+function stepArr(uid, hid, k){
+  const v = S.progress[uid]?.days?.[hid]?.[k], st = stepsOf(HB[hid]);
+  if (!v) return [];
+  if (!st) return [0];
+  if (v === true) return st.map((_, i) => i);
+  return Array.isArray(v) ? v.filter(i => i < st.length) : [];
+}
+function didOn(uid, hid, k){
+  const v = S.progress[uid]?.days?.[hid]?.[k];
+  if (!v) return false;
+  const st = stepsOf(HB[hid]);
+  if (!st || v === true) return true;
+  return stepArr(uid, hid, k).length >= st.length;
+}
+function partOn(uid, hid, k){ return !!stepsOf(HB[hid]) && stepArr(uid, hid, k).length > 0 && !didOn(uid, hid, k); }
 function nameOf(id){ if (id === S.me) return (S.profiles[id]?.name || S.meInfo?.name || "You").split(" ")[0]; return (S.profiles[id]?.name || "Your partner").split(" ")[0]; }
 function avatarOf(id){ return S.profiles[id]?.avatarUrl || (id===S.me ? S.meInfo?.avatarUrl : "") || ""; }
 
@@ -532,18 +576,18 @@ function levelOn(h, k){
   if (h.owner === US){
     const ms = members(); if (!ms.length) return 0;
     const did = ms.filter(u => didOn(u, h.id, k));
-    if (!did.length) return 0;
+    if (!did.length) return ms.some(u => partOn(u, h.id, k)) ? 1 : 0;
     const need = ms.filter(u => joinedBy(u, k) || did.includes(u));
     return did.length >= need.length ? 2 : 1;
   }
-  return didOn(h.owner, h.id, k) ? 2 : 0;
+  return didOn(h.owner, h.id, k) ? 2 : partOn(h.owner, h.id, k) ? 1 : 0;
 }
 // rest days (per person) and pauses (per habit) never break a streak
 function inPause(h, k){ return (h.pauses || []).some(p => k >= p.from && (!p.to || k <= p.to)); }
 function isPaused(h){ const p = (h.pauses || []).at(-1); return !!p && !p.to; }
 function restOf(uid, k){ return !!S.progress[uid]?.rest?.[k]; }
 function isRest(h, k){ return inPause(h, k) || (h.owner === US ? members() : [h.owner]).some(u => restOf(u, k)); }
-function syncActive(){ S.habits = S.allHabits.filter(h => !isPaused(h)); }
+function syncActive(){ S.allHabits.forEach(h => HB[h.id] = h); S.habits = S.allHabits.filter(h => !isPaused(h)); }
 const perWeek = h => Number(h.perWeek) || 7;
 function mondayOf(d){ const x = new Date(d); x.setHours(12,0,0,0); x.setDate(x.getDate() - ((x.getDay()+6)%7)); return x; }
 function weekDone(h, monday){ let n = 0; for (let i = 0; i < 7; i++){ const d = new Date(monday); d.setDate(d.getDate()+i); if (levelOn(h, keyOf(d)) === 2) n++; } return n; }
@@ -690,7 +734,7 @@ function rowHead(h, kind){
   if (kind === "theirs"){
     if (didOn(h.owner,h.id,today())) head.append(el(`<span class="chip-btn done" aria-label="Done today">${ICON.tick}</span>`));
     else { const n = el(`<button class="chip-btn txt" aria-label="Nudge">${ICON.bell}</button>`); n.onclick = async () => { n.disabled = true; n.style.opacity = .5; await sendNudge(h); }; head.append(n); }
-  } else head.append(checkBtn(h));
+  } else head.append(stepsOf(h) ? stepPills(h, S.me, true, true) : checkBtn(h));
   return head;
 }
 function patternRow(h, kind){
@@ -755,8 +799,8 @@ function catchUpTile(){
   missed.forEach(h => {
     const c = colorOf(h);
     const b = el(`<button type="button" class="cu-chip" style="--a:${c.a};--b:${c.b}"><span class="cu-ic">${iconFor(h.title)}</span><span></span></button>`);
-    b.querySelector("span:last-child").textContent = h.title;
-    b.onclick = () => { toggleDay(h.id, y); toast(`Logged "${h.title}" for yesterday`); };
+    b.querySelector("span:last-child").textContent = stepsOf(h) ? `${h.title} (${stepCount(h, S.me, y)})` : h.title;
+    b.onclick = stepsOf(h) ? () => openDetail(h, y) : () => { toggleDay(h.id, y); toast(`Logged "${h.title}" for yesterday`); };
     chips.append(b);
   });
   t.querySelector(".cu-x").onclick = () => { try { localStorage.setItem("catchup-ok", y); } catch {} render(); };
@@ -805,7 +849,12 @@ function todayView(){
   if (pid) out.push(duoTile(pid));
   if (ours.length){ out.push(el(`<div class="label">Together</div>`)); ours.forEach(h => out.push(sharedTile(h))); }
   out.push(el(`<div class="label">Yours</div>`));
-  const pushTiles = (list, kind) => { const ts = list.map(h => habitTile(h, kind)); if (ts.length % 2) ts[ts.length-1].classList.add("wide", "solo"); out.push(...ts); };
+  const pushTiles = (list, kind) => {
+    const wide = list.filter(stepsOf).map(h => habitTile(h, kind));
+    const ts = list.filter(h => !stepsOf(h)).map(h => habitTile(h, kind));
+    if (ts.length % 2) ts[ts.length-1].classList.add("wide", "solo");
+    out.push(...wide, ...ts);
+  };
   if (mine.length) pushTiles(mine, "mine");
   else out.push(note("Nothing personal yet. Tap + to add a habit just for you."));
   if (pid){
@@ -827,12 +876,17 @@ function heroTile(hs){
   hs.forEach(h => {
     const c = colorOf(h), on = didOn(S.me, h.id, today());
     const weekly = perWeek(h) < 7;
-    const frac = weekly ? Math.min(1, thisWeek(h)/perWeek(h)) : (on ? 1 : 0);
-    const label = on ? "Done" : isRest(h, today()) ? "Rest" : weekly ? `${Math.min(thisWeek(h),perWeek(h))}/${perWeek(h)}` : "To do";
+    const st = stepsOf(h), sa = st ? stepArr(S.me, h.id, today()) : null;
+    const frac = st ? sa.length / st.length : weekly ? Math.min(1, thisWeek(h)/perWeek(h)) : (on ? 1 : 0);
+    const label = on ? "Done" : isRest(h, today()) && !(sa && sa.length) ? "Rest" : st ? `${sa.length}/${st.length}` : weekly ? `${Math.min(thisWeek(h),perWeek(h))}/${perWeek(h)}` : "To do";
     const b = el(`<button class="ring ${on?'on':''}" aria-pressed="${on}" style="--c:${on?c.b:'var(--muted)'}"><div class="g">${arc(60,6,frac,c,"#2c2830")}<div class="ic">${iconFor(h.title)}</div></div><span></span></button>`);
     b.querySelector("span").textContent = label;
     b.setAttribute("aria-label", `${h.title}: ${on ? "done today, tap to undo" : "tap when done"}`);
-    b.onclick = () => toggle(h.id);
+    if (st){
+      const nxt = st.findIndex((_, j) => !sa.includes(j));
+      b.setAttribute("aria-label", `${h.title}: ${sa.length} of ${st.length} done${nxt >= 0 ? `, tap to mark ${st[nxt]}` : ""}`);
+      b.onclick = () => nxt >= 0 ? toggleStep(h.id, today(), nxt) : openDetail(h);
+    } else b.onclick = () => toggle(h.id);
     if (h.id === popId) b.classList.add("pop");
     rings.append(b);
   });
@@ -877,6 +931,23 @@ function headFor(h, sub, right){
   if (right) head.append(right);
   return head;
 }
+function stepPills(h, uid, editable, compact, k = today()){
+  const st = stepsOf(h), a = stepArr(uid, h.id, k);
+  const row = el(`<div class="steps${compact ? " compact" : ""}" role="group"></div>`);
+  row.style.setProperty("--n", st.length <= 6 ? st.length : 4);
+  row.setAttribute("aria-label", `${h.title} steps`);
+  st.forEach((name, i) => {
+    const on = a.includes(i);
+    const b = el(`<button type="button" class="step${on ? " on" : ""}" aria-pressed="${on}"></button>`);
+    b.textContent = compact ? name.trim().slice(0, 1).toUpperCase() : name;
+    b.title = name; b.setAttribute("aria-label", `${name}: ${on ? "done" : "not done"}`);
+    if (editable) b.onclick = e => { e.stopPropagation(); toggleStep(h.id, k, i); };
+    else b.disabled = true;
+    row.append(b);
+  });
+  return row;
+}
+function stepCount(h, uid, k = today()){ return `${stepArr(uid, h.id, k).length}/${stepsOf(h).length}`; }
 function checkBtn(h){
   const on = didOn(S.me, h.id, today());
   const b = el(`<button class="chip-btn" aria-pressed="${on}" aria-label="${on?"Done today, tap to undo":"Mark done today"}">${ICON.tick}</button>`);
@@ -928,7 +999,16 @@ function habitTile(h, kind){
   if (kind === "theirs"){
     if (didOn(h.owner,h.id,today())) right = el(`<span class="chip-btn done" aria-label="Done today">${ICON.tick}</span>`);
     else { right = el(`<button class="chip-btn txt" aria-label="Nudge">${ICON.bell}</button>`); right.onclick = async () => { right.disabled = true; right.style.opacity=.5; await sendNudge(h); }; }
-  } else right = checkBtn(h);
+  } else right = stepsOf(h) ? null : checkBtn(h);
+  if (stepsOf(h)){
+    const who = kind === "theirs" ? h.owner : S.me;
+    tile.classList.add("wide");
+    tile.append(headFor(h, `${stepCount(h, who)} today · ${goalText(h)}`, right));
+    tile.append(stepPills(h, who, kind !== "theirs"));
+    tile.append(el(`<div class="big"><b class="num">${st}</b><span>${weekly?"week":"day"}<br>streak</span></div>`));
+    tile.append(vizFor(h));
+    return tile;
+  }
   tile.append(headFor(h, subFor(h, kind), right));
   tile.append(el(`<div class="big"><b class="num">${st}</b><span>${weekly?"week":"day"}<br>streak</span></div>`));
   tile.append(vizFor(h));
@@ -1069,7 +1149,8 @@ function vizFor(h, kind = vizOf(h), o = {}){
 function sharedTile(h){
   const c = colorOf(h), st = streak(h), t = today(), weekly = perWeek(h) < 7;
   const tile = el(`<article class="tile wide${h.id === popId ? " pop" : ""}" style="--a:${c.a};--b:${c.b}"></article>`);
-  tile.append(headFor(h, weekly ? `Together · ${subFor(h)}` : `Together · ${goalText(h)}`, checkBtn(h)));
+  tile.append(headFor(h, weekly ? `Together · ${subFor(h)}` : `Together · ${goalText(h)}`, stepsOf(h) ? null : checkBtn(h)));
+  if (stepsOf(h)) tile.append(stepPills(h, S.me, true));
   const mid = el(`<div class="big"><b class="num">${st}</b><span>${weekly?"week":"day"} streak<br>together</span></div>`);
   tile.append(mid);
   const ms = members();
@@ -1077,7 +1158,7 @@ function sharedTile(h){
   if (vizOf(h) !== "lanes") v.style.margin = "0 -18px";
   tile.append(v);
   const chips = el(`<div class="who-chips"></div>`);
-  ms.forEach(u => { const w = el(`<span class="who ${didOn(u,h.id,t)?'on':''}"><img alt=""><span></span></span>`); w.querySelector("img").src = avatarOf(u); w.querySelector("span").textContent = nameOf(u); chips.append(w); });
+  ms.forEach(u => { const w = el(`<span class="who ${didOn(u,h.id,t)?'on':''}"><img alt=""><span></span></span>`); w.querySelector("img").src = avatarOf(u); w.querySelector("span").textContent = nameOf(u) + (stepsOf(h) ? ` ${stepCount(h, u)}` : ""); chips.append(w); });
   if (ms.length >= 2 && ms.every(u => didOn(u,h.id,t))) chips.append(el(`<span class="sync">In sync today</span>`));
   else if (ms.length < 2) chips.append(el(`<span class="who">Waiting for your partner to join</span>`));
   tile.append(chips);
@@ -1095,7 +1176,7 @@ function emptyTile(compact){
   left.forEach(s => {
     const b = el(`<button class="chip"></button>`);
     b.textContent = s.title; b.append(el(`<small>${s.who===US?"us":"me"}</small>`));
-    b.onclick = () => { addHabit(s.title, s.who===US?US:S.me, 60, s.freq||7); b.disabled = true; };
+    b.onclick = () => { addHabit(s.title, s.who===US?US:S.me, s.steps ? 0 : 60, s.freq||7, s.steps ? {steps: s.steps} : {}); b.disabled = true; };
     chips.append(b);
   });
   return d;
@@ -1130,7 +1211,7 @@ function weekView(){
 }
 function jarCount(){
   const since = S.jar?.since || "0000-00-00"; let n = 0;
-  members().forEach(u => Object.values(S.progress[u]?.days || {}).forEach(m => Object.entries(m).forEach(([k,v]) => { if (v && k >= since) n++; })));
+  members().forEach(u => Object.values(S.progress[u]?.days || {}).forEach(m => Object.entries(m).forEach(([k,v]) => { if (v && k >= since) n += Array.isArray(v) ? v.length : 1; })));
   return n;
 }
 function jarTile(){
@@ -1254,6 +1335,8 @@ function lookPicker(st, isUs){
   return wrap;
 }
 
+const PRAYERS = ["Fajr","Dhuhr","Asr","Maghrib","Isha"];
+function parseSteps(v){ const a = String(v || "").split(",").map(x => x.trim()).filter(Boolean).slice(0, 12); return a.length >= 2 ? a : null; }
 const FREQ = [[7,"Daily"],[5,"5× wk"],[3,"3× wk"],[1,"1× wk"]];
 function swapPanel(panel, dir){
   panel.classList.add("enter"); stagger(panel);
@@ -1262,7 +1345,27 @@ function swapPanel(panel, dir){
 }
 const GOALS = [[0,"Ongoing"],[30,"30 days"],[60,"60 days"],[90,"90 days"]];
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-function openDetail(h){
+function stepStats(h, dayKeys, label){
+  const st = stepsOf(h); if (!st || !dayKeys.length) return null;
+  const counts = st.map(() => 0); let full = 0, sum = 0;
+  dayKeys.forEach(k => { const a = stepArr(S.me, h.id, k); a.forEach(i => counts[i]++); sum += a.length; if (a.length >= st.length) full++; });
+  const n = dayKeys.length;
+  const box = el(`<div class="sstats"><div class="lbl"></div></div>`);
+  box.querySelector(".lbl").textContent = label;
+  st.forEach((name, i) => {
+    const r = el(`<div class="srow"><span class="sname"></span><span class="sbar"><b></b></span><span class="snum">${counts[i]}/${n} · ${Math.round(counts[i]/n*100)}%</span></div>`);
+    r.querySelector(".sname").textContent = name;
+    r.querySelector(".sbar b").style.width = (counts[i]/n*100) + "%";
+    box.append(r);
+  });
+  const min = Math.min(...counts), missed = counts.every(c => c === min) ? null : st[counts.indexOf(min)];
+  const foot = el(`<p class="sfoot"></p>`);
+  foot.innerHTML = `<b>${full}</b> full ${full === 1 ? "day" : "days"} (${st.length}/${st.length}) · average <b>${(sum/n).toFixed(1)}</b>/${st.length} a day${missed ? ` · most missed: <b></b>` : ""}`;
+  if (missed) foot.querySelector("b:last-child").textContent = missed;
+  box.append(foot);
+  return box;
+}
+function openDetail(h, pickDay){
   const c = colorOf(h), weekly = perWeek(h) < 7, unit = n => weekly ? (n === 1 ? "week" : "weeks") : (n === 1 ? "day" : "days");
   let keys = allDone(h), set = new Set(keys);
   const on = k => set.has(k);
@@ -1270,7 +1373,8 @@ function openDetail(h){
   const first = keys[0] && dk(keys[0]) < first0 ? dk(keys[0]) : first0;
   const back = daysAgo(730); if (first > back) first.setTime(Math.min(first.getTime(), daysAgo(62).getTime()));
   const minMonth = first.getFullYear()*12 + first.getMonth(), maxMonth = now.getFullYear()*12 + now.getMonth();
-  let mode = "month", mIdx = maxMonth, yr = now.getFullYear(), tapMode = "done";
+  let mode = "month", mIdx = maxMonth, yr = now.getFullYear(), tapMode = "done", pickK = stepsOf(h) ? (pickDay || today()) : null;
+  if (pickDay){ const pd = dk(pickDay); mIdx = Math.max(minMonth, pd.getFullYear()*12 + pd.getMonth()); }
   const canEdit = h.owner === S.me || h.owner === US;
   const statsHTML = () => {
     const cur = streak(h), best = bestStreak(h), mk = keyOf(nowD()).slice(0,7);
@@ -1287,7 +1391,9 @@ function openDetail(h){
     <div id="d-seg"></div><div id="d-panel"></div></div>`);
   const refresh = () => { keys = allDone(h); set = new Set(keys); d.querySelector(".dstats").innerHTML = statsHTML(); drawMonth("none"); };
   const tapDay = (k, cell) => {
-    if (tapMode === "rest") toggleRest(k); else toggleDay(h.id, k);
+    if (tapMode === "rest") toggleRest(k);
+    else if (stepsOf(h)) { pickK = k; }
+    else toggleDay(h.id, k);
     refresh();
     const again = panel.querySelector(`[data-k="${k}"]`); if (again && !reduced) again.animate([{transform:"scale(.7)"},{transform:"scale(1.12)"},{transform:"scale(1)"}], {duration:420, easing:"cubic-bezier(.2,.9,.25,1.08)"});
   };
@@ -1320,10 +1426,23 @@ function openDetail(h){
     const run = runFor(h, keyOf(new Date(y, mo, 1, 12)), endK);
     const foot = el(`<p class="dfoot"><b>${monthKeys.length}</b> of ${elapsed} days (${pct}%) · longest run <b>${run}</b> ${run === 1 ? "day" : "days"}</p>`);
     const parts = [nav(`${new Date(y, mo, 1).toLocaleString("en",{month:"long"})} ${y}`, mIdx > minMonth, mIdx < maxMonth, () => { mIdx--; drawMonth(-1); }, () => { mIdx++; drawMonth(1); }), g, foot];
+    if (stepsOf(h)){
+      if (canEdit && pickK && pickK.startsWith(`${y}-${pad(mo+1)}`)){
+        const pk = el(`<div class="spick"><div class="lbl"></div></div>`);
+        pk.querySelector(".lbl").textContent = (pickK === today() ? "Today" : dk(pickK).toLocaleDateString("en", {weekday:"long", day:"numeric", month:"short"})) + " · tap to mark";
+        const pills = stepPills(h, S.me, true, false, pickK);
+        pills.querySelectorAll(".step").forEach((b, i) => b.onclick = e => { e.stopPropagation(); toggleStep(h.id, pickK, i); refresh(); });
+        pk.append(pills); parts.push(pk);
+        g.querySelector(`[data-k="${pickK}"]`)?.classList.add("picked");
+      }
+      const dayKeys = []; for (let dd = 1; dd <= dim; dd++){ const k = keyOf(new Date(y, mo, dd, 12)); if (k <= today() && !isRest(h, k)) dayKeys.push(k); }
+      const ss = stepStats(h, dayKeys, `${h.owner === US ? "Your steps" : "Each step"} · ${new Date(y, mo, 1).toLocaleString("en",{month:"long"})}`);
+      if (ss) parts.push(ss);
+    }
     if (canEdit){
       const tools = el(`<div class="tap-tools"><div class="tap-seg"></div><p class="hint"></p></div>`);
       tools.querySelector(".tap-seg").append(seg([["done","Mark done"],["rest","Mark rest day"]], tapMode, v => { tapMode = v; tools.querySelector(".hint").textContent = hintFor(); }));
-      const hintFor = () => tapMode === "rest" ? "Tap a day to mark it as a rest day. It covers all your habits that day, so no streak breaks." : (h.owner === US ? "Tap a day to fill in your part. It counts once you've both done it." : "Forgot to log? Tap any past day to fill it in.");
+      const hintFor = () => tapMode === "rest" ? "Tap a day to mark it as a rest day. It covers all your habits that day, so no streak breaks." : (stepsOf(h) ? "Tap any past day to see and fill in its steps." : h.owner === US ? "Tap a day to fill in your part. It counts once you've both done it." : "Forgot to log? Tap any past day to fill it in.");
       tools.querySelector(".hint").textContent = hintFor();
       parts.push(tools);
     }
@@ -1352,7 +1471,13 @@ function openDetail(h){
       for (let dd = 1; dd <= dim; dd++){ const k = keyOf(new Date(yr, mo, dd, 12)); grid.append(el(`<i class="${on(k)?'on':(k<=today() && isRest(h,k))?'rest':''}${k>today()?' later':''}"></i>`)); }
       minis.append(m);
     });
-    panel.replaceChildren(nav(String(yr), yr > first.getFullYear(), yr < now.getFullYear(), () => { yr--; drawYear(-1); }, () => { yr++; drawYear(1); }), bars, lab, foot, minis);
+    let yss = null;
+    if (stepsOf(h)){
+      const dayKeys = [], start = dk(`${yr}-01-01`), firstK = keyOf(first);
+      for (const dd = new Date(start); dd.getFullYear() === yr; dd.setDate(dd.getDate()+1)){ const k = keyOf(dd); if (k <= today() && k >= firstK && !isRest(h, k)) dayKeys.push(k); }
+      yss = stepStats(h, dayKeys, `${h.owner === US ? "Your steps" : "Each step"} · ${yr}`);
+    }
+    panel.replaceChildren(...[nav(String(yr), yr > first.getFullYear(), yr < now.getFullYear(), () => { yr--; drawYear(-1); }, () => { yr++; drawYear(1); }), bars, lab, foot, yss, minis].filter(Boolean));
     swapPanel(panel, dir);
   };
   d.querySelector("#d-seg").append(seg([["month","Month"],["year","Year"]], mode, v => { mode = v; v === "month" ? drawMonth() : drawYear(); }));
@@ -1364,6 +1489,8 @@ function openAdd(){
   const st = {viz:"goal", color: Math.floor(Math.random()*PALETTE.length), goal:60};
   const f = el(`<form><h3>New habit</h3>
     <div class="field"><label for="h-title">Habit</label><input id="h-title" maxlength="60" placeholder="e.g. Read 20 pages" autocomplete="off"></div>
+    <div class="field"><label for="h-steps">Steps <span style="text-transform:none;letter-spacing:0;font-weight:500">(optional)</span></label><input id="h-steps" maxlength="200" placeholder="e.g. Fajr, Dhuhr, Asr, Maghrib, Isha" autocomplete="off"></div>
+    <p class="hint">For something you do several times a day. Separate steps with commas. The day counts as done when every step is done, and you get stats for each step. <button type="button" class="linkish" id="h-prayers">Use the 5 daily prayers</button></p>
     <div class="field"><span class="lbl">Who's doing it</span><div id="h-who"></div></div>
     <p class="hint">"Us" habits count once you both check them off.</p>
     <div class="field"><span class="lbl">How often</span><div id="h-freq"></div></div>
@@ -1377,7 +1504,8 @@ function openAdd(){
   f.querySelector("#h-freq").append(seg(FREQ, freq, v => { freq = v; if (v < 7 && st.viz !== "lanes") { st.viz = "dots"; picker.redraw(); } }));
   f.querySelector("#h-goal").append(seg(GOALS, goal, v => { goal = v; st.goal = v; picker.redraw(); }));
   f.querySelector("#h-cancel").onclick = closeSheet;
-  f.onsubmit = e => { e.preventDefault(); const t = f.querySelector("#h-title").value.trim(); if (!t) return f.querySelector("#h-title").focus(); addHabit(t, who, goal, freq, {viz: st.viz, color: st.color}); closeSheet(); if (S.view !== "today"){ S.view = "today"; render(); } };
+  f.querySelector("#h-prayers").onclick = () => { f.querySelector("#h-steps").value = PRAYERS.join(", "); if (!f.querySelector("#h-title").value.trim()) f.querySelector("#h-title").value = "Pray at the mosque"; };
+  f.onsubmit = e => { e.preventDefault(); const t = f.querySelector("#h-title").value.trim(); if (!t) return f.querySelector("#h-title").focus(); const steps = parseSteps(f.querySelector("#h-steps").value); addHabit(t, who, goal, freq, steps ? {viz: st.viz, color: st.color, steps} : {viz: st.viz, color: st.color}); closeSheet(); if (S.view !== "today"){ S.view = "today"; render(); } };
   sheet(f);
 }
 function openEdit(h){
@@ -1387,6 +1515,8 @@ function openEdit(h){
   if (!canEdit){ const d = el(`<div><h3></h3><p class="soft"></p></div>`); d.querySelector("h3").textContent = h.title; d.querySelector("p").textContent = `This is ${nameOf(h.owner)}'s habit, so only she can change it.`; return sheet(d); }
   const f = el(`<form><h3>Edit habit</h3>
     <div class="field"><label for="e-title">Habit</label><input id="e-title" maxlength="60" autocomplete="off"></div>
+    <div class="field"><label for="e-steps">Steps <span style="text-transform:none;letter-spacing:0;font-weight:500">(optional)</span></label><input id="e-steps" maxlength="200" placeholder="e.g. Fajr, Dhuhr, Asr, Maghrib, Isha" autocomplete="off"></div>
+    <p class="hint">For something you do several times a day. Separate steps with commas. The day counts as done when every step is done, and you get stats for each step. <button type="button" class="linkish" id="e-prayers">Use the 5 daily prayers</button></p>
     <div class="field"><span class="lbl">How often</span><div id="e-freq"></div></div>
     <div class="field"><span class="lbl">Goal</span><div id="e-goal"></div></div>
     <div id="e-look"></div>
@@ -1402,13 +1532,15 @@ function openEdit(h){
     updateHabit(h.id, {pauses: ps}); closeSheet();
   };
   const inp = f.querySelector("#e-title"); inp.value = h.title;
+  f.querySelector("#e-steps").value = (stepsOf(h) || []).join(", ");
+  f.querySelector("#e-prayers").onclick = () => { f.querySelector("#e-steps").value = PRAYERS.join(", "); };
   f.querySelector("#e-freq").append(seg(FREQ, freq, v => freq = v));
   const picker = lookPicker(st, () => h.owner === US);
   f.querySelector("#e-look").append(picker);
   f.querySelector("#e-goal").replaceChildren(seg(GOALS, goal, v => { goal = v; st.goal = v; picker.redraw(); }));
   const del = f.querySelector("#e-del");
   del.onclick = () => { if (!armed){ armed = true; del.textContent = "Tap again to delete"; return; } removeHabit(h.id); closeSheet(); };
-  f.onsubmit = e => { e.preventDefault(); const t = inp.value.trim(); if (!t) return; updateHabit(h.id, {title:t, goal, perWeek:freq, viz:st.viz, color:st.color}); closeSheet(); };
+  f.onsubmit = e => { e.preventDefault(); const t = inp.value.trim(); if (!t) return; updateHabit(h.id, {title:t, goal, perWeek:freq, viz:st.viz, color:st.color, steps: parseSteps(f.querySelector("#e-steps").value) || []}); closeSheet(); };
   sheet(f);
 }
 function openManage(){
@@ -1503,11 +1635,28 @@ function saveMine(mutate){
 }
 function toggleDay(hid, k){
   let nowOn = false;
-  saveMine(n => { const m = n.days[hid] = n.days[hid] || {}; if (m[k]) delete m[k]; else { m[k] = true; nowOn = true; } });
+  saveMine(n => {
+    const m = n.days[hid] = n.days[hid] || {}, st = stepsOf(HB[hid]);
+    const full = st ? (m[k] === true || (Array.isArray(m[k]) && m[k].length >= st.length)) : !!m[k];
+    if (full) delete m[k]; else { m[k] = st ? st.map((_, i) => i) : true; nowOn = true; }
+  });
   if (nowOn && k === today()) popId = hid;
   render();
 }
 function toggle(hid){ toggleDay(hid, today()); }
+function toggleStep(hid, k, i){
+  const st = stepsOf(HB[hid]); if (!st) return toggleDay(hid, k);
+  let full = false;
+  saveMine(n => {
+    const m = n.days[hid] = n.days[hid] || {};
+    let a = m[k] === true ? st.map((_, j) => j) : Array.isArray(m[k]) ? m[k].filter(j => j < st.length) : [];
+    a = a.includes(i) ? a.filter(j => j !== i) : [...a, i].sort((x, y) => x - y);
+    if (a.length) m[k] = a; else delete m[k];
+    full = a.length >= st.length;
+  });
+  if (full && k === today()) popId = hid;
+  render();
+}
 function toggleRest(k){ saveMine(n => { n.rest = n.rest || {}; if (n.rest[k]) delete n.rest[k]; else n.rest[k] = true; }); render(); }
 function setDayEnd(v){ saveMine(n => { n.dayEnd = v; }); render(); }
 function addHabit(title, owner, goal, freq, extra = {}){
@@ -1565,6 +1714,7 @@ function startDemo(){
     {id:"h8", title:"Journal", owner:"demo-me", goal:60, viz:"month", color:4},
     {id:"h6", title:"Sleep by 11", owner:"demo-me", goal:60, viz:"ring", color:3},
     {id:"h3", title:"Evening walk together", owner:US, goal:60},
+    {id:"hp", title:"Pray at the mosque", owner:"demo-me", goal:0, steps:["Fajr","Dhuhr","Asr","Maghrib","Isha"], viz:"grid", color:1},
     {id:"h4", title:"Learn 10 new words", owner:"demo-partner", goal:30},
     {id:"h7", title:"Yoga", owner:"demo-partner", goal:60, perWeek:3, viz:"battery", color:3}
   ];
@@ -1574,6 +1724,7 @@ function startDemo(){
     "demo-partner": {days:{h3:fill(.65,5,false), h4:fill(.5,9,true), h7:fill(.4,21,false)}}
   };
   S.jar = {goal:100, reward:"Weekend brunch", since: keyOf(daysAgo(14))};
+  { const m = {}; let seed = 31; for (let i = 0; i < 120; i++){ const a = []; for (let j = 0; j < 5; j++){ seed = (seed*9301+49297)%233280; if (seed/233280 < [.55,.9,.85,.95,.8][j]) a.push(j); } if (i === 0) a.splice(2); if (a.length) m[keyOf(daysAgo(i))] = a; } S.progress["demo-me"].days.hp = m; }
   ["h6","h8"].forEach(id => delete S.progress["demo-me"].days[id][keyOf(daysAgo(1))]);
   S.progress["demo-me"].rest = {[keyOf(daysAgo(3))]: true, [keyOf(daysAgo(17))]: true};
   syncActive();
