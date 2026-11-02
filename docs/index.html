@@ -298,6 +298,17 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .smap i{height:12px;border-radius:2px;background:var(--cell)}
 .smap i.fut{background:transparent}
 .smap i.rest{background:repeating-linear-gradient(135deg,var(--cell) 0 2px,transparent 2px 4px)}
+/* steps editor */
+.sedit{display:grid;gap:8px}
+.srows{display:grid;gap:6px}
+.srow-e{display:grid;grid-template-columns:22px minmax(0,1fr) 36px;gap:8px;align-items:center}
+.srow-e .sn{font-size:12px;font-weight:700;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.srow-e input{width:100%;padding:11px 14px;border-radius:14px;border:0;background:var(--track);color:var(--ink);font:inherit;font-size:16px}
+.srow-e .sx{width:36px;height:36px;border-radius:50%;border:0;background:var(--track);color:var(--muted);font-size:18px;line-height:1}
+.srow-e:not(:has(.sx))::after{content:"";width:36px}
+.sedit-actions{display:flex;gap:8px;padding-left:30px}
+.hint.serr{color:var(--danger);margin:0 0 0 30px}
+.sedit .presets{gap:6px}
 /* catch-up card */
 .catchup{padding:16px}
 .cu-head{display:flex;align-items:flex-start;gap:10px}
@@ -1640,32 +1651,84 @@ function openDetail(h, pickDay){
   drawMonth();
   sheet(d);
 }
+// steps editor: one field per step, add/remove, ready-made sets.
+// When editing, existing steps can be renamed but not removed, so past check-ins stay attached to the right step.
+const STEP_PRESETS = [["5 daily prayers", PRAYERS], ["Meals", ["Breakfast","Lunch","Dinner"]], ["Morning & evening", ["Morning","Evening"]], ["Water, 8 glasses", ["1","2","3","4","5","6","7","8"]]];
+function stepsEditor(initial, onChange, locked = 0){
+  const box = el(`<div class="sedit"><div class="srows"></div>
+    <div class="sedit-actions"><button type="button" class="chip" data-add>+ Add step</button></div>
+    <p class="hint serr" hidden></p>
+    ${locked ? "" : `<div class="field" style="margin:14px 0 0"><span class="lbl">Ready-made</span><div class="chips presets"></div></div>`}</div>`);
+  const rows = box.querySelector(".srows");
+  const clearErr = () => { const e = box.querySelector(".serr"); e.hidden = true; e.textContent = ""; };
+  const add = (val = "", isLocked = false) => {
+    if (rows.children.length >= 12) return;
+    const r = el(`<div class="srow-e"><span class="sn"></span><input maxlength="24" autocomplete="off"><button type="button" class="sx" aria-label="Remove step">×</button></div>`);
+    const inp = r.querySelector("input"); inp.value = val;
+    inp.addEventListener("input", () => { clearErr(); onChange && onChange(); });
+    if (isLocked) r.querySelector(".sx").remove();
+    else r.querySelector(".sx").onclick = () => { if (rows.children.length <= 2) { inp.value = ""; } else r.remove(); renumber(); onChange && onChange(); };
+    rows.append(r); renumber();
+    return inp;
+  };
+  const renumber = () => [...rows.children].forEach((r, i) => { r.querySelector(".sn").textContent = i + 1; r.querySelector("input").placeholder = `Step ${i + 1}`; });
+  const set = list => { clearErr(); rows.replaceChildren(); list.forEach((v, i) => add(v, i < locked)); while (rows.children.length < 2) add(""); onChange && onChange(); };
+  box.querySelector("[data-add]").onclick = () => { const i = add(""); i && i.focus(); onChange && onChange(); };
+  const pres = box.querySelector(".presets");
+  if (pres) STEP_PRESETS.forEach(([label, list]) => { const c = el(`<button type="button" class="chip"></button>`); c.textContent = label; c.onclick = () => set(list); pres.append(c); });
+  set(initial && initial.length ? initial : ["", ""]);
+  return {
+    el: box,
+    get: () => [...rows.querySelectorAll("input")].map(i => i.value.trim()).filter(Boolean),
+    error: msg => { const e = box.querySelector(".serr"); e.textContent = msg || ""; e.hidden = !msg; },
+    set
+  };
+}
 function openAdd(){
-  let who = S.me, goal = 60, freq = 7;
+  let who = S.me, goal = 60, freq = 7, kind = "simple";
   const st = {viz:"goal", color: Math.floor(Math.random()*PALETTE.length), goal:60};
   const f = el(`<form><h3>New habit</h3>
+    <div class="field"><span class="lbl">How many times a day</span><div id="h-kind"></div></div>
     <div class="field"><label for="h-title">Habit</label><input id="h-title" maxlength="60" placeholder="e.g. Read 20 pages" autocomplete="off"></div>
-    <div class="field"><label for="h-steps">Steps <span style="text-transform:none;letter-spacing:0;font-weight:500">(optional)</span></label><input id="h-steps" maxlength="200" placeholder="e.g. Fajr, Dhuhr, Asr, Maghrib, Isha" autocomplete="off"></div>
-    <p class="hint">For something you do several times a day. Separate steps with commas. The day counts as done when every step is done, and you get stats for each step. <button type="button" class="linkish" id="h-prayers">Use the 5 daily prayers</button></p>
+    <div id="h-steps-wrap" hidden><div class="field"><span class="lbl">Steps</span></div><p class="hint">The day counts as done when every step is done. You also get stats for each step.</p></div>
     <div class="field"><span class="lbl">Who's doing it</span><div id="h-who"></div></div>
     <p class="hint">"Us" habits count once you both check them off.</p>
-    <div class="field"><span class="lbl">How often</span><div id="h-freq"></div></div>
-    <p class="hint">Weekly habits keep their streak as long as you hit the target each week (weeks start Monday).</p>
+    <div id="h-freq-wrap"><div class="field"><span class="lbl">How often</span><div id="h-freq"></div></div>
+    <p class="hint">Weekly habits keep their streak as long as you hit the target each week (weeks start Monday).</p></div>
     <div class="field"><span class="lbl">Goal</span><div id="h-goal"></div></div>
     <div id="h-look"></div>
     <div class="btn-row"><button class="btn" type="submit">Add habit</button><button class="btn ghost" type="button" id="h-cancel">Cancel</button></div></form>`);
-  const stepsIn = () => parseSteps(f.querySelector("#h-steps").value);
-  const picker = lookPicker(st, () => who === US, stepsIn);
+  const title = f.querySelector("#h-title");
+  const editor = stepsEditor([], () => { if (kind === "steps") picker.redraw(); });
+  f.querySelector("#h-steps-wrap .field").append(editor.el);
+  const stepsNow = () => kind === "steps" ? (editor.get().length >= 2 ? editor.get() : ["Step 1", "Step 2", "Step 3"]) : null;
+  const picker = lookPicker(st, () => who === US, stepsNow);
   f.querySelector("#h-look").append(picker);
-  const syncStepLook = () => { const has = !!stepsIn(), isStepLook = STEP_STYLES.some(([v]) => v === st.viz); if (has && !isStepLook) st.viz = "stepgrid"; if (!has && isStepLook) st.viz = "goal"; picker.redraw(); };
-  f.querySelector("#h-steps").addEventListener("change", syncStepLook);
-  f.querySelector("#h-steps").addEventListener("blur", syncStepLook);
-  f.querySelector("#h-who").append(seg([[S.me,"Just me"],[US,"Us"]], who, v => { who = v; if (v === US && st.viz === "goal") st.viz = "lanes"; if (v !== US && st.viz === "lanes") st.viz = "goal"; picker.redraw(); }));
+  const drawGoal = () => f.querySelector("#h-goal").replaceChildren(seg(GOALS, goal, v => { goal = v; st.goal = v; picker.redraw(); }));
+  f.querySelector("#h-kind").append(seg([["simple","Once a day"],["steps","Several times"]], kind, v => {
+    kind = v;
+    const steps = v === "steps";
+    f.querySelector("#h-steps-wrap").hidden = !steps;
+    f.querySelector("#h-freq-wrap").hidden = steps;
+    title.placeholder = steps ? "e.g. Pray at the mosque" : "e.g. Read 20 pages";
+    if (steps){ freq = 7; goal = 0; st.goal = 0; st.viz = "stepgrid"; }
+    else { goal = 60; st.goal = 60; st.viz = who === US ? "lanes" : "goal"; editor.error(""); }
+    drawGoal(); picker.redraw();
+  }));
+  f.querySelector("#h-who").append(seg([[S.me,"Just me"],[US,"Us"]], who, v => { who = v; if (kind !== "steps"){ if (v === US && st.viz === "goal") st.viz = "lanes"; if (v !== US && st.viz === "lanes") st.viz = "goal"; } picker.redraw(); }));
   f.querySelector("#h-freq").append(seg(FREQ, freq, v => { freq = v; if (v < 7 && st.viz !== "lanes") { st.viz = "dots"; picker.redraw(); } }));
-  f.querySelector("#h-goal").append(seg(GOALS, goal, v => { goal = v; st.goal = v; picker.redraw(); }));
+  drawGoal();
   f.querySelector("#h-cancel").onclick = closeSheet;
-  f.querySelector("#h-prayers").onclick = () => { f.querySelector("#h-steps").value = PRAYERS.join(", "); if (!f.querySelector("#h-title").value.trim()) f.querySelector("#h-title").value = "Pray at the mosque"; syncStepLook(); };
-  f.onsubmit = e => { e.preventDefault(); const t = f.querySelector("#h-title").value.trim(); if (!t) return f.querySelector("#h-title").focus(); const steps = parseSteps(f.querySelector("#h-steps").value); addHabit(t, who, goal, freq, steps ? {viz: st.viz, color: st.color, steps} : {viz: st.viz, color: st.color}); closeSheet(); if (S.view !== "today"){ S.view = "today"; render(); } };
+  f.onsubmit = e => {
+    e.preventDefault();
+    const t = title.value.trim(); if (!t) return title.focus();
+    if (kind === "steps"){
+      const steps = editor.get();
+      if (steps.length < 2) return editor.error("Add at least 2 steps.");
+      addHabit(t, who, goal, 7, {viz: st.viz, color: st.color, steps});
+    } else addHabit(t, who, goal, freq, {viz: st.viz, color: st.color});
+    closeSheet(); if (S.view !== "today"){ S.view = "today"; render(); }
+  };
   sheet(f);
 }
 function openEdit(h){
@@ -1673,11 +1736,11 @@ function openEdit(h){
   let goal = goalOf(h), freq = perWeek(h), armed = false;
   const st = {viz: vizOf(h), color: colorIndex(h), goal};
   if (!canEdit){ const d = el(`<div><h3></h3><p class="soft"></p></div>`); d.querySelector("h3").textContent = h.title; d.querySelector("p").textContent = `This is ${nameOf(h.owner)}'s habit, so only she can change it.`; return sheet(d); }
+  const hasSteps = !!stepsOf(h);
   const f = el(`<form><h3>Edit habit</h3>
     <div class="field"><label for="e-title">Habit</label><input id="e-title" maxlength="60" autocomplete="off"></div>
-    <div class="field"><label for="e-steps">Steps <span style="text-transform:none;letter-spacing:0;font-weight:500">(optional)</span></label><input id="e-steps" maxlength="200" placeholder="e.g. Fajr, Dhuhr, Asr, Maghrib, Isha" autocomplete="off"></div>
-    <p class="hint">For something you do several times a day. Separate steps with commas. The day counts as done when every step is done, and you get stats for each step. <button type="button" class="linkish" id="e-prayers">Use the 5 daily prayers</button></p>
-    <div class="field"><span class="lbl">How often</span><div id="e-freq"></div></div>
+    ${hasSteps ? `<div id="e-steps-wrap"><div class="field"><span class="lbl">Steps</span></div><p class="hint">You can rename steps and add new ones. Existing steps can't be removed, so your history stays accurate.</p></div>` : ""}
+    ${hasSteps ? "" : `<div class="field"><span class="lbl">How often</span><div id="e-freq"></div></div>`}
     <div class="field"><span class="lbl">Goal</span><div id="e-goal"></div></div>
     <div id="e-look"></div>
     <div class="btn-row"><button class="btn" type="submit">Save</button><button class="btn ghost" type="button" id="e-pause"></button><button class="btn danger" type="button" id="e-del">Delete</button></div>
@@ -1692,16 +1755,26 @@ function openEdit(h){
     updateHabit(h.id, {pauses: ps}); closeSheet();
   };
   const inp = f.querySelector("#e-title"); inp.value = h.title;
-  f.querySelector("#e-steps").value = (stepsOf(h) || []).join(", ");
-  f.querySelector("#e-prayers").onclick = () => { f.querySelector("#e-steps").value = PRAYERS.join(", "); };
-  f.querySelector("#e-freq").append(seg(FREQ, freq, v => freq = v));
-  const picker = lookPicker(st, () => h.owner === US, () => parseSteps(f.querySelector("#e-steps").value));
+  let editor = null;
+  const picker = lookPicker(st, () => h.owner === US, () => hasSteps ? (editor && editor.get().length >= 2 ? editor.get() : stepsOf(h)) : null);
+  if (hasSteps){ editor = stepsEditor(stepsOf(h), () => picker.redraw(), stepsOf(h).length); f.querySelector("#e-steps-wrap .field").append(editor.el); }
+  else f.querySelector("#e-freq").append(seg(FREQ, freq, v => freq = v));
   f.querySelector("#e-look").append(picker);
-  f.querySelector("#e-steps").addEventListener("change", () => picker.redraw());
   f.querySelector("#e-goal").replaceChildren(seg(GOALS, goal, v => { goal = v; st.goal = v; picker.redraw(); }));
   const del = f.querySelector("#e-del");
   del.onclick = () => { if (!armed){ armed = true; del.textContent = "Tap again to delete"; return; } removeHabit(h.id); closeSheet(); };
-  f.onsubmit = e => { e.preventDefault(); const t = inp.value.trim(); if (!t) return; updateHabit(h.id, {title:t, goal, perWeek:freq, viz:st.viz, color:st.color, steps: parseSteps(f.querySelector("#e-steps").value) || []}); closeSheet(); };
+  f.onsubmit = e => {
+    e.preventDefault();
+    const t = inp.value.trim(); if (!t) return;
+    const patch = {title:t, goal, viz:st.viz, color:st.color};
+    if (hasSteps){
+      const old = stepsOf(h), names = [...editor.el.querySelectorAll(".srows input")].map(i => i.value.trim());
+      // keep every existing step (an emptied name falls back to the old one), then any new non-empty steps
+      const steps = old.map((n, i) => names[i] || n).concat(names.slice(old.length).filter(Boolean)).slice(0, 12);
+      patch.steps = steps;
+    } else patch.perWeek = freq;
+    updateHabit(h.id, patch); closeSheet();
+  };
   sheet(f);
 }
 function openManage(){
