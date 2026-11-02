@@ -18,6 +18,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@85..100,400..700&family=Bricolage+Grotesque:opsz,wght@12..96,400..700&display=swap">
 <script src="firebase-config.js"></script>
+<script>try{var m=localStorage.getItem("mode");if(m&&m!=="auto")document.documentElement.dataset.mode=m;}catch(e){}</script>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js">
+<link rel="preconnect" href="https://firestore.googleapis.com">
+<link rel="preconnect" href="https://identitytoolkit.googleapis.com">
 <style>
 /* Layout: a board of widget tiles. Wide tiles (today rings, the two of you, shared habits) span the full width; personal habits sit in a 2-up grid of square tiles, each with its own color and its own chart style. Dark-first; a warm paper light theme follows the system, the host toggle, or the in-app Appearance switch (data-mode). */
 :root{
@@ -400,6 +406,31 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 .cz-t.on{opacity:1;box-shadow:inset 0 0 0 1.5px var(--ink)}
 .into-shared{box-shadow:inset 0 0 0 2px var(--her),0 24px 48px -16px rgba(0,0,0,.45)!important}
 .ghosted{opacity:.35}
+/* splash */
+#splash{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:24px;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+.sp-icon{width:118px;height:118px;border-radius:32px;background:var(--tile);box-shadow:inset 0 0 0 1px var(--rim),0 24px 60px -24px rgba(232,116,42,.45);display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:20px;animation:sp-in .6s cubic-bezier(.2,.9,.3,1.2) both}
+.sp-icon i{border-radius:7px;background:var(--track);animation:sp-wave 1.6s ease-in-out infinite;animation-delay:calc(var(--d) * .12s)}
+.sp-icon i.on{background:linear-gradient(135deg,#e8742a,#fde047)}
+.sp-icon i:nth-child(1).on{background:linear-gradient(135deg,#e8742a,#f59e0b)}
+.sp-icon i:nth-child(9).on{background:linear-gradient(135deg,#facc15,#fde047)}
+@keyframes sp-wave{0%,60%,100%{transform:scale(1);opacity:1}25%{transform:scale(.78);opacity:.55}}
+@keyframes sp-in{from{transform:scale(.6) rotate(-12deg);opacity:0}}
+.sp-name{margin-top:26px;font-family:var(--display);font-weight:500;font-size:34px;letter-spacing:-.03em;animation:sp-up .6s .12s cubic-bezier(.2,.8,.2,1) both}
+.sp-tag{margin-top:4px;color:var(--muted);font-size:15px;animation:sp-up .6s .2s cubic-bezier(.2,.8,.2,1) both}
+.sp-status{position:absolute;left:0;right:0;bottom:calc(56px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;align-items:baseline;gap:2px;color:var(--muted);font-size:13.5px;font-weight:500;animation:sp-up .6s .5s ease both;padding:0 24px;text-align:center}
+.sp-dots{display:inline-flex;gap:3px;margin-left:4px}
+.sp-dots b{width:4px;height:4px;border-radius:50%;background:currentColor;animation:sp-dot 1.2s infinite}
+.sp-dots b:nth-child(2){animation-delay:.15s}.sp-dots b:nth-child(3){animation-delay:.3s}
+@keyframes sp-dot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+@keyframes sp-up{from{opacity:0;transform:translateY(10px)}}
+.sp-retry{position:absolute;bottom:calc(100px + env(safe-area-inset-bottom,0px))}
+#splash.err .sp-dots{display:none}
+#splash.err .sp-icon i{animation:none;opacity:.5}
+#splash.out{pointer-events:none;animation:sp-out .5s cubic-bezier(.4,0,.2,1) forwards}
+#splash.out .sp-icon i{animation:sp-lit .3s ease forwards}
+@keyframes sp-lit{to{transform:scale(1);opacity:1}}
+@keyframes sp-out{0%{opacity:1}35%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.06)}}
+@media (prefers-reduced-motion: reduce){#splash *{animation:none!important}}
 /* steps editor */
 .sedit{display:grid;gap:8px}
 .srows{display:grid;gap:6px}
@@ -615,8 +646,19 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 
 </head>
 <body>
-<main class="app" id="app"><p class="loading">Loading your habits…</p></main>
-<nav class="nav" aria-label="Main"><div class="nav-inner">
+<div id="splash" role="status" aria-live="polite">
+  <div class="sp-icon" aria-hidden="true">
+    <i class="on" style="--d:0"></i><i style="--d:1"></i><i class="on" style="--d:2"></i>
+    <i class="on" style="--d:1"></i><i class="on" style="--d:2"></i><i style="--d:3"></i>
+    <i style="--d:2"></i><i class="on" style="--d:3"></i><i class="on" style="--d:4"></i>
+  </div>
+  <div class="sp-name">Two of Us</div>
+  <div class="sp-tag">Habits, together.</div>
+  <div class="sp-status"><span id="sp-msg">Opening your board</span><span class="sp-dots" aria-hidden="true"><b></b><b></b><b></b></span></div>
+  <button type="button" class="btn sp-retry" id="sp-retry" hidden>Try again</button>
+</div>
+<main class="app" id="app"></main>
+<nav class="nav" aria-label="Main" hidden><div class="nav-inner">
   <button id="nav-today" aria-label="Today" aria-current="page" data-view="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="17" height="7" rx="2"/></svg></button>
   <button id="nav-week" aria-label="This week" data-view="week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20v-6M10 20V9M15 20v-8M20 20V5"/></svg></button>
   <button id="nav-add" aria-label="Add habit" data-view="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -860,6 +902,7 @@ function render(){
   else if (slide){ window.scrollTo(0, 0); if (!reduced){ const dir = slide === "slide-left" ? 1 : -1; board.animate([{opacity: 0, transform: `translateX(${dir * 48}px)`}, {opacity: 1, transform: "none"}], {duration: 360, easing: "cubic-bezier(.2,.8,.2,1)"}); } countUp(board); }
   else window.scrollTo(0, y);
   runMoments();
+  hideSplash();
   popId = null;
   document.querySelectorAll(".nav button").forEach(b => { if (b.dataset.view === S.view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   moveNav();
@@ -2288,7 +2331,27 @@ function startDemo(){
 const FB_VERSION = "10.12.2";
 let FB = null;
 const GOOGLE_ICON = '<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.3c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2.1-1.9 3.3-4.7 3.3-8Z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.5-2.7c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.7H2.1v2.8A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.7 14a6.6 6.6 0 0 1 0-4.2V7H2.1a11 11 0 0 0 0 9.8L5.7 14Z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.1-3.1A11 11 0 0 0 2.1 7l3.6 2.8C6.6 7.3 9.1 5.4 12 5.4Z"/></svg>';
+// ---------- splash ----------
+const splashT0 = performance.now();
+let splashGone = false, splashErr = false;
+function splashStatus(msg, isError){
+  const sp = document.getElementById("splash"); if (!sp || splashGone) return;
+  splashErr = !!isError;
+  document.getElementById("sp-msg").textContent = msg;
+  sp.classList.toggle("err", !!isError);
+  const r = document.getElementById("sp-retry"); r.hidden = !isError; r.onclick = () => location.reload();
+}
+function hideSplash(){
+  if (splashGone) return; splashGone = true;
+  const sp = document.getElementById("splash"); if (!sp) return;
+  document.querySelector(".nav").hidden = false;
+  const wait = Math.max(0, 450 - (performance.now() - splashT0)); // never just flash it
+  setTimeout(() => { if (reduced){ sp.remove(); return; } sp.classList.add("out"); setTimeout(() => sp.remove(), 520); }, wait);
+}
+setTimeout(() => { if (!splashGone && !splashErr) splashStatus("Syncing your habits"); }, 2500);
+setTimeout(() => { if (!splashGone && !splashErr) splashStatus("Still connecting. Hang tight"); }, 7000);
 function gate(html){
+  hideSplash();
   document.querySelector(".nav").hidden = true;
   const app = document.getElementById("app");
   app.innerHTML = `<section class="gate"><div class="mark" aria-hidden="true">${[1,0,1,1,1,0,0,1,1].map(o => `<i class="${o?'on':''}"></i>`).join("")}</div>${html}</section>`;
@@ -2342,7 +2405,7 @@ async function enterHousehold(u){
   S.me = u.uid;
   const first = (u.displayName || u.email || "?").trim();
   S.meInfo = {name: u.displayName || (u.email || "").split("@")[0], photo: u.photoURL || "", avatarUrl: u.photoURL || initials(first[0].toUpperCase(), "#7c3aed")};
-  document.getElementById("app").innerHTML = '<p class="loading">Loading your habits…</p>';
+  splashStatus("Opening your board");
   const uref = F.doc(db, "users", u.uid);
   let hid = null;
   try { const us = await F.getDoc(uref); hid = us.exists() ? us.data().household : null; } catch (e) { console.warn(e); }
@@ -2366,7 +2429,6 @@ async function enterHousehold(u){
   }
   S.hid = hid;
   store = shim(`households/${hid}/`);
-  document.querySelector(".nav").hidden = false;
   subscribe();
 }
 function showSignInError(msg){
@@ -2381,8 +2443,8 @@ function profileFrom(id, d){
 }
 let joined = false;
 function subscribe(){
-  const timer = setTimeout(() => { if (!S.ready.habits || !S.ready.progress) document.getElementById("app").innerHTML = '<p class="loading">Still connecting. The board will appear as soon as it loads.</p>'; }, 10000);
-  const fail = e => { clearTimeout(timer); console.warn(e); document.getElementById("app").innerHTML = '<p class="loading">Couldn\'t load the board. Check your connection and reload.</p>'; };
+  const timer = setTimeout(() => { if (!S.ready.habits || !S.ready.progress) splashStatus("Slow connection. Your board will appear as soon as it loads"); }, 12000);
+  const fail = e => { clearTimeout(timer); console.warn(e); splashStatus("Couldn't load your board. Check your connection.", true); };
   store.collection("habits").orderBy("createdAt").onSnapshot(snap => { S.allHabits = snap.docs.map(d => ({id:d.id, ...d.data()})); syncActive(); S.ready.habits = true; clearTimeout(timer); render(); }, fail);
   store.collection("progress").onSnapshot(snap => {
     const p = {}; snap.docs.forEach(d => p[d.id] = d.data());
@@ -2427,7 +2489,7 @@ async function boot(){
     A.onAuthStateChanged(auth, u => { if (u) enterHousehold(u).catch(e => { console.warn(e); showSignIn("Couldn't open your board. Check your connection and try again."); }); else showSignIn(); });
   } catch (e) {
     console.warn(e);
-    document.getElementById("app").innerHTML = '<p class="loading">Couldn\'t reach the server. Check your connection and reload.</p>';
+    splashStatus("Couldn't reach the server. Check your connection.", true);
   }
 }
 // ---------- gestures ----------
