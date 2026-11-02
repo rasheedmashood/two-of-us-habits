@@ -307,6 +307,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .sbar b{position:relative;z-index:1}
 .skf{display:inline-flex;align-items:center;gap:2px;color:var(--ink);font-weight:700}
 .skf svg{width:12px;height:12px;color:var(--warn)}
+/* drag to reorder */
+.board > [data-hid]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.board > [data-hid].pressing{transform:scale(.975);transition:transform .38s cubic-bezier(.3,.7,.4,1)}
+.board > [data-hid].lifting{position:relative;z-index:50;transition:none;box-shadow:inset 0 0 0 1px var(--rim),0 24px 48px -16px rgba(0,0,0,.45),0 8px 18px -10px rgba(0,0,0,.3);cursor:grabbing;will-change:transform}
+body.reordering{cursor:grabbing}
+body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacity:.92}
 /* steps editor */
 .sedit{display:grid;gap:8px}
 .srows{display:grid;gap:6px}
@@ -640,7 +646,13 @@ function inPause(h, k){ return (h.pauses || []).some(p => k >= p.from && (!p.to 
 function isPaused(h){ const p = (h.pauses || []).at(-1); return !!p && !p.to; }
 function restOf(uid, k){ return !!S.progress[uid]?.rest?.[k]; }
 function isRest(h, k){ return inPause(h, k) || (h.owner === US ? members() : [h.owner]).some(u => restOf(u, k)); }
-function syncActive(){ S.allHabits.forEach(h => HB[h.id] = h); S.habits = S.allHabits.filter(h => !isPaused(h)); }
+const orderKey = h => Number.isFinite(h.order) ? h.order : 1e6 + (h.createdAt || 0) / 1e9;
+function syncActive(){
+  S.allHabits = S.allHabits.slice().sort((a, b) => orderKey(a) - orderKey(b));
+  S.allHabits.forEach(h => HB[h.id] = h);
+  S.habits = S.allHabits.filter(h => !isPaused(h));
+}
+const tagged = (node, h, kind) => { if (kind !== "theirs"){ node.dataset.hid = h.id; node.dataset.group = kind; } return node; };
 const perWeek = h => Number(h.perWeek) || 7;
 function mondayOf(d){ const x = new Date(d); x.setHours(12,0,0,0); x.setDate(x.getDate() - ((x.getDay()+6)%7)); return x; }
 function weekDone(h, monday){ let n = 0; for (let i = 0; i < 7; i++){ const d = new Date(monday); d.setDate(d.getDate()+i); if (levelOn(h, keyOf(d)) === 2) n++; } return n; }
@@ -724,8 +736,10 @@ function moveNav(){
   const cur = document.querySelector(`.nav button[data-view="${S.view}"]`), ind = document.querySelector(".nav-ind");
   if (cur && ind) ind.style.transform = `translateX(${cur.offsetLeft}px)`;
 }
+let pendingRender = false;
 function render(){
   if (!S.ready.habits || !S.ready.progress) return;
+  if (S.dragging){ pendingRender = true; return; }
   const enter = animMode === "enter" && !reduced; animMode = null;
   const y = window.scrollY;
   const app = document.getElementById("app");
@@ -894,19 +908,23 @@ function todayView(){
   const iv = inviteTile(); if (iv) out.push(iv);
   if (S.layout !== "tiles"){
     const mk = S.layout === "year" ? patternRow : weekRow;
-    const sec = (label, list, kind) => { if (!list.length) return; const l = el(`<div class="label"></div>`); l.textContent = label; out.push(l); list.forEach(h => out.push(mk(h, kind))); };
+    const sec = (label, list, kind) => { if (!list.length) return; const l = el(`<div class="label"></div>`); l.textContent = label; out.push(l); list.forEach(h => out.push(tagged(mk(h, kind), h, kind))); };
     sec("Together", ours, "ours"); sec("Yours", mine, "mine"); if (pid) sec(`${nameOf(pid)}'s`, theirs, "theirs");
     return out;
   }
   if (mine.length + ours.length) out.push(heroTile([...mine, ...ours]));
   if (pid) out.push(duoTile(pid));
-  if (ours.length){ out.push(el(`<div class="label">Together</div>`)); ours.forEach(h => out.push(sharedTile(h))); }
+  if (ours.length){ out.push(el(`<div class="label">Together</div>`)); ours.forEach(h => out.push(tagged(sharedTile(h), h, "ours"))); }
   out.push(el(`<div class="label">Yours</div>`));
   const pushTiles = (list, kind) => {
-    const wide = list.filter(stepsOf).map(h => habitTile(h, kind));
-    const ts = list.filter(h => !stepsOf(h)).map(h => habitTile(h, kind));
-    if (ts.length % 2) ts[ts.length-1].classList.add("wide", "solo");
-    out.push(...wide, ...ts);
+    const ts = list.map(h => tagged(habitTile(h, kind), h, kind));
+    let open = null; // a square waiting for a partner in its row
+    ts.forEach(t => {
+      if (t.classList.contains("wide")){ if (open){ open.classList.add("wide", "solo"); open = null; } }
+      else open = open ? null : t;
+    });
+    if (open) open.classList.add("wide", "solo");
+    out.push(...ts);
   };
   if (mine.length) pushTiles(mine, "mine");
   else out.push(note("Nothing personal yet. Tap + to add a habit just for you."));
@@ -993,9 +1011,7 @@ function stepPills(h, uid, editable, compact, k = today()){
     const on = a.includes(i);
     const b = el(`<button type="button" class="step${on ? " on" : ""}" aria-pressed="${on}"></button>`);
     b.textContent = compact ? name.trim().slice(0, 1).toUpperCase() : name;
-    const sk = compact || k !== today() ? 0 : stepStreak(h, i, uid);
-    if (sk >= 2){ const t = el(`<small class="sk"></small>`); t.textContent = `${sk}d`; b.append(t); }
-    b.title = name; b.setAttribute("aria-label", `${name}: ${on ? "done" : "not done"}${sk >= 2 ? `, ${sk} day streak` : ""}`);
+    b.title = name; b.setAttribute("aria-label", `${name}: ${on ? "done" : "not done"}`);
     if (editable) b.onclick = e => { e.stopPropagation(); toggleStep(h.id, k, i); };
     else b.disabled = true;
     row.append(b);
@@ -1830,7 +1846,7 @@ function openManage(){
   const resting = restOf(S.me, today());
   const d = el(`<div><h3>Your habits</h3><div class="list" id="m-list"></div>
     <div id="m-paused"></div>
-    <div class="btn-row" style="margin-top:16px"><button class="btn" id="m-add">Add habit</button></div>
+    <p class="hint" style="margin:10px 2px 0">Tip: press and hold a habit on the main screen, then drag it to change the order.</p><div class="btn-row" style="margin-top:16px"><button class="btn" id="m-add">Add habit</button></div>
     <div class="field" style="margin:26px 0 0"><span class="lbl">Rest day</span>
       <button class="row" id="m-rest" type="button"><div><b></b><small></small></div></button></div>
     <div class="field" style="margin:18px 0 0"><span class="lbl">My day ends at</span><div id="m-dayend"></div></div>
@@ -2146,6 +2162,108 @@ async function boot(){
     document.getElementById("app").innerHTML = '<p class="loading">Couldn\'t reach the server. Check your connection and reload.</p>';
   }
 }
+// ---------- drag to reorder ----------
+(function dragReorder(){
+  let cand = null, timer = 0, drag = null, raf = 0, suppressClick = false;
+  const HOLD = 380, SLOP = 8;
+  const pageRect = el => { const r = el.getBoundingClientRect(); return {x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height}; };
+  const groupItems = (board, group) => [...board.children].filter(c => c.dataset.group === group);
+  document.addEventListener("pointerdown", e => {
+    if (e.button > 0 || S.dragging || sheetOpen) return;
+    const tile = e.target.closest(".board > [data-hid]");
+    if (!tile || e.target.closest("button:not(.h-title):not(.p-title), input, a")) return;
+    cand = {tile, x: e.clientX, y: e.clientY, id: e.pointerId};
+    clearTimeout(timer);
+    timer = setTimeout(() => start(e), HOLD);
+    tile.classList.add("pressing");
+  });
+  document.addEventListener("pointermove", e => {
+    if (drag){ drag.px = e.clientX; drag.py = e.clientY; if (!drag.moved && Math.hypot(drag.px - drag.sx, drag.py - drag.sy) > 24) drag.moved = true; move(); return; }
+    if (cand && Math.hypot(e.clientX - cand.x, e.clientY - cand.y) > SLOP) cancelCand();
+  });
+  const end = () => { cancelCand(); if (drag) drop(); };
+  document.addEventListener("pointerup", end);
+  document.addEventListener("pointercancel", () => { if (drag) drop(); else cancelCand(); });
+  document.addEventListener("touchmove", e => { if (drag) e.preventDefault(); }, {passive: false});
+  document.addEventListener("contextmenu", e => { if (drag || cand) e.preventDefault(); });
+  document.addEventListener("click", e => { if (suppressClick){ e.stopPropagation(); e.preventDefault(); suppressClick = false; } }, true);
+  function cancelCand(){ clearTimeout(timer); cand?.tile.classList.remove("pressing"); cand = null; }
+  function start(){
+    if (!cand) return;
+    const tile = cand.tile, board = tile.parentElement, r = pageRect(tile);
+    S.dragging = true;
+    drag = {tile, board, group: tile.dataset.group, grabX: cand.x + scrollX - r.x, grabY: cand.y + scrollY - r.y, origin: r, px: cand.x, py: cand.y, sx: cand.x, sy: cand.y, moved: false};
+    tile.classList.remove("pressing"); tile.classList.add("lifting");
+    document.body.classList.add("reordering");
+    try { navigator.vibrate?.(12); } catch {}
+    cand = null;
+    move(); tick();
+  }
+  function place(){
+    const t = drag.tile, x = drag.px + scrollX - drag.grabX - drag.origin.x, y = drag.py + scrollY - drag.grabY - drag.origin.y;
+    t.style.transform = `translate(${x}px, ${y}px) scale(1.035) rotate(${Math.max(-1.5, Math.min(1.5, x / 120))}deg)`;
+  }
+  function move(){
+    if (!drag) return;
+    place();
+    const {tile, board, group} = drag;
+    const items = groupItems(board, group), px = drag.px, py = drag.py;
+    const over = items.find(c => { if (c === tile) return false; const r = c.getBoundingClientRect(); return px >= r.left && px <= r.right && py >= r.top && py <= r.bottom; });
+    if (!over) return;
+    const from = items.indexOf(tile), to = items.indexOf(over);
+    // FLIP: remember where everyone is, move the dragged tile in the DOM, then glide the rest into place
+    const before = new Map(items.map(c => [c, c.getBoundingClientRect()]));
+    if (to > from) over.after(tile); else over.before(tile);
+    reflowSolo(board, group);
+    items.forEach(c => {
+      if (c === tile) return;
+      const a = before.get(c), b = c.getBoundingClientRect();
+      const dx = a.left - b.left, dy = a.top - b.top;
+      if ((dx || dy) && !reduced) c.animate([{transform: `translate(${dx}px, ${dy}px)`}, {transform: "none"}], {duration: 320, easing: "cubic-bezier(.2,.9,.25,1.08)"});
+    });
+    const keep = tile.style.transform; tile.style.transform = "none";
+    drag.origin = pageRect(tile); tile.style.transform = keep;
+    place();
+  }
+  function reflowSolo(board, group){
+    // in the tiles layout, keep the "lone square spans the row" rule while things move
+    const items = groupItems(board, group);
+    items.forEach(t => { if (t.classList.contains("solo")) t.classList.remove("wide", "solo"); });
+    let open = null;
+    items.forEach(t => { if (t.classList.contains("wide")){ if (open){ open.classList.add("wide", "solo"); open = null; } } else if (!t.classList.contains("prow")) open = open ? null : t; });
+    if (open) open.classList.add("wide", "solo");
+  }
+  function tick(){
+    if (!drag) return;
+    const edge = 90, y = drag.py;
+    const v = !drag.moved ? 0 : y < edge ? -(edge - y) / 6 : y > innerHeight - edge - 70 ? (y - (innerHeight - edge - 70)) / 6 : 0;
+    if (v){ scrollBy(0, v); move(); }
+    raf = requestAnimationFrame(tick);
+  }
+  function drop(){
+    cancelAnimationFrame(raf);
+    const {tile, board, group} = drag;
+    const cur = tile.style.transform;
+    tile.style.transform = "";
+    tile.classList.remove("lifting");
+    if (!reduced) tile.animate([{transform: cur, zIndex: 50}, {transform: "translate(0,0) scale(.985)", offset: .75}, {transform: "none"}], {duration: 420, easing: "cubic-bezier(.2,.9,.3,1.25)"});
+    document.body.classList.remove("reordering");
+    suppressClick = true; setTimeout(() => suppressClick = false, 350);
+    const ids = groupItems(board, group).map(c => c.dataset.hid);
+    drag = null;
+    saveOrder(ids);
+    setTimeout(() => { S.dragging = false; if (pendingRender){ pendingRender = false; render(); } }, 440);
+  }
+  function saveOrder(ids){
+    const changed = [];
+    ids.forEach((id, i) => { const h = HB[id]; if (h && h.order !== i) changed.push([id, i]); });
+    if (!changed.length) return;
+    changed.forEach(([id, i]) => { HB[id].order = i; });
+    S.allHabits = S.allHabits.map(h => changed.some(([id]) => id === h.id) ? {...h, order: HB[h.id].order} : h);
+    syncActive(); pendingRender = true;
+    if (!S.demo) changed.forEach(([id, i]) => queue(() => store.doc("habits/" + id).update({order: i})));
+  }
+})();
 function getMode(){ try { return localStorage.getItem("mode") || "auto"; } catch { return "auto"; } }
 function setMode(m){
   try { localStorage.setItem("mode", m); } catch {}
