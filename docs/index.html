@@ -266,6 +266,38 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .sfoot{margin:4px 0 0;color:var(--muted);font-size:13px;line-height:1.5}
 .sfoot b{color:var(--ink)}
 .linkish{border:0;background:none;padding:0;color:var(--ink);font:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+/* step charts */
+.v-sgrid{display:grid;gap:3px;padding:0 18px;align-items:center}
+.v-sgrid .sg-l{font-size:10px;font-weight:700;color:var(--muted);width:12px;text-align:center}
+.v-sgrid i{height:10px;border-radius:3px;background:var(--cell)}
+.v-sgrid i.now{box-shadow:inset 0 0 0 1.2px var(--ink)}
+.v-stack{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:4px;height:64px;padding:0 18px}
+.v-stack > div{display:flex;flex-direction:column-reverse;gap:2px;border-radius:5px}
+.v-stack > div.now{box-shadow:0 0 0 1.5px var(--ink);padding:1px}
+.v-stack i{flex:1;border-radius:3px;background:var(--cell)}
+.v-srings{position:relative;display:flex;justify-content:center}
+.v-srings svg.arc{width:132px;height:132px}
+.v-srings div{position:absolute;inset:0;display:grid;place-items:center;align-content:center;text-align:center}
+.v-srings b{font-size:17px;font-weight:500;line-height:1}
+.v-srings small{font-size:10px;color:var(--muted)}
+.sr-leg{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 10px;margin-top:10px;padding:0 14px;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sr-leg span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.sr-leg i{width:7px;height:7px;border-radius:50%}
+.pv .v-srings svg.arc{width:76px;height:76px}
+.pv .sr-leg{display:none}
+.enter .v-sgrid > i{animation:popin .4s var(--spring) both;animation-delay:calc(var(--i,0)*55ms + 120ms + var(--j,0)*14ms)}
+.enter .v-stack > div{transform-origin:bottom;animation:grow .6s var(--spring) both;animation-delay:calc(var(--i,0)*55ms + 120ms + var(--j,0)*22ms)}
+.htable{margin-top:20px}
+.ht,.smap{display:grid;gap:3px;margin-top:8px;align-items:center}
+.ht .hc,.smap .hc{font-size:10px;font-weight:700;color:var(--faint);text-align:center;font-variant-numeric:tabular-nums}
+.ht .hr,.smap .hr{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ht i{height:24px;border-radius:6px;background:var(--cell);font-style:normal;font-size:10px;font-weight:700;display:grid;place-items:center;color:var(--ink);font-variant-numeric:tabular-nums}
+.ht i.dk{color:#141016}
+.ht i.na{background:transparent;box-shadow:inset 0 0 0 1px var(--cell)}
+.smap{gap:2px}
+.smap i{height:12px;border-radius:2px;background:var(--cell)}
+.smap i.fut{background:transparent}
+.smap i.rest{background:repeating-linear-gradient(135deg,var(--cell) 0 2px,transparent 2px 4px)}
 /* catch-up card */
 .catchup{padding:16px}
 .cu-head{display:flex;align-items:flex-start;gap:10px}
@@ -520,7 +552,8 @@ const PALETTE = [
 const hash = s => { let h = 7; for (const c of String(s)) h = (h*31 + c.charCodeAt(0)) >>> 0; return h; };
 const colorOf = h => Number.isInteger(h.color) ? PALETTE[h.color % PALETTE.length] : PALETTE[hash(h.id) % PALETTE.length];
 const colorIndex = h => Number.isInteger(h.color) ? h.color % PALETTE.length : hash(h.id) % PALETTE.length;
-const vizOf = h => h.viz || (h.owner === US ? "lanes" : perWeek(h) < 7 ? "dots" : ["goal","bars","squares"][hash(h.id+"v") % 3]);
+const STEP_STYLES = [["stepgrid","Step grid"],["stack","Stacked bars"],["rings","Step rings"]];
+const vizOf = h => h.viz || (Array.isArray(h.steps) && h.steps.length ? "stepgrid" : h.owner === US ? "lanes" : perWeek(h) < 7 ? "dots" : ["goal","bars","squares"][hash(h.id+"v") % 3]);
 const STYLES = [["goal","Goal bar"],["bars","Bars"],["squares","Week blocks"],["dots","Week dots"],["ring","Ring"],["grid","Dot grid"],["wave","Streak wave"],["beads","Beads"],["month","Month"],["line","Progress line"],["battery","Battery"]];
 const US = "us";
 const SUGGEST = [
@@ -654,7 +687,7 @@ function headline(){
 
 let animMode = "enter", popId = null;
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const STAGGER = ".v-bars,.v-wave,.uv,.ybars,.v-sq,.v-dots,.v-beads,.v-grid,.v-month,.lanes,.v-batt,.minis";
+const STAGGER = ".v-stack,.v-bars,.v-wave,.uv,.ybars,.v-sq,.v-dots,.v-beads,.v-grid,.v-month,.lanes,.v-batt,.minis";
 function stagger(root){ root.querySelectorAll(STAGGER).forEach(c => [...c.children].forEach((ch, j) => ch.style.setProperty("--j", j))); }
 function countUp(root){
   if (reduced) return;
@@ -1018,6 +1051,57 @@ function habitTile(h, kind){
 function vizFor(h, kind = vizOf(h), o = {}){
   const lvOf = o.lv || (k => levelOn(h, k));
   const wrap = el(`<div class="viz"></div>`);
+  const stp = stepsOf(h) || ["1","2","3","4","5"];
+  const sOf = o.sa || (k => stepArr(h.owner === US ? S.me : h.owner, h.id, k));
+  const stepCol = i => `color-mix(in oklab, var(--b) ${Math.round(i / Math.max(1, stp.length - 1) * 100)}%, var(--a))`;
+  if (kind === "stepgrid"){
+    const N = 21, g = el(`<div class="v-sgrid"></div>`);
+    g.style.gridTemplateColumns = `auto repeat(${N}, minmax(0,1fr))`;
+    stp.forEach((name, i) => {
+      const l = el(`<span class="sg-l"></span>`); l.textContent = name.trim().slice(0, 1).toUpperCase(); l.title = name; g.append(l);
+      for (let d = N - 1; d >= 0; d--){
+        const k = keyOf(daysAgo(d)), on = sOf(k).includes(i);
+        const c = el(`<i class="${d === 0 ? "now" : ""}"></i>`);
+        if (on) c.style.background = stepCol(i);
+        c.style.setProperty("--j", N - 1 - d);
+        g.append(c);
+      }
+    });
+    wrap.append(g);
+    wrap.append(el(`<div class="axis pad-axis"><span>3 wks</span><i></i><span>Today</span></div>`));
+    return wrap;
+  }
+  if (kind === "stack"){
+    const N = 14, g = el(`<div class="v-stack"></div>`);
+    for (let d = N - 1; d >= 0; d--){
+      const k = keyOf(daysAgo(d)), a = sOf(k), col = el(`<div class="${d === 0 ? "now" : ""}"></div>`);
+      stp.forEach((_, i) => { const seg = el(`<i></i>`); if (a.includes(i)) seg.style.background = stepCol(i); col.append(seg); });
+      if (a.length >= stp.length) col.classList.add("full");
+      g.append(col);
+    }
+    wrap.append(g);
+    wrap.append(el(`<div class="axis pad-axis"><span>2 wks</span><i></i><span>Today</span></div>`));
+    return wrap;
+  }
+  if (kind === "rings"){
+    const size = 132, n = stp.length, sw = Math.max(3, Math.min(7, 32 / n)), gap = 2;
+    const created = h.createdAt ? keyOf(new Date(h.createdAt)) : "0000";
+    const days = []; for (let d = 29; d >= 0; d--){ const k = keyOf(daysAgo(d)); if (o.sa || (k >= created && !isRest(h, k))) days.push(k); }
+    const cnt = stp.map((_, i) => days.filter(k => sOf(k).includes(i)).length);
+    let svg = "";
+    stp.forEach((_, i) => {
+      const r = size / 2 - sw / 2 - i * (sw + gap); if (r < 6) return;
+      const C = 2 * Math.PI * r, f = days.length ? cnt[i] / days.length : 0;
+      svg += `<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" style="stroke:var(--track)" stroke-width="${sw}"/>`;
+      if (f > 0) svg += `<circle class="val" cx="${size/2}" cy="${size/2}" r="${r}" fill="none" style="stroke:${stepCol(i)}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${Math.max(.01, C*f)} ${C}" transform="rotate(-90 ${size/2} ${size/2})"/>`;
+    });
+    const avg = days.length ? Math.round(cnt.reduce((x, y) => x + y, 0) / (days.length * n) * 100) : 0;
+    const r = el(`<div class="v-srings"><svg class="arc" viewBox="0 0 ${size} ${size}" aria-hidden="true">${svg}</svg><div><b class="num">${avg}%</b><small>30 days</small></div></div>`);
+    const leg = el(`<div class="sr-leg"></div>`);
+    stp.forEach((name, i) => { const it = el(`<span><i></i></span>`); it.querySelector("i").style.background = stepCol(i); it.append(document.createTextNode(`${name} ${days.length ? Math.round(cnt[i] / days.length * 100) : 0}%`)); leg.append(it); });
+    wrap.append(r, leg);
+    return wrap;
+  }
   if (kind === "lanes"){
     const ms = o.ms || members().slice(0,2);
     const did = o.did || ((u,k) => didOn(u,h.id,k));
@@ -1306,21 +1390,23 @@ function seg(options, value, onPick){
   return d;
 }
 // look + colour pickers with live previews
-function samplePreview(style, ci, isUs, goal){
-  const h = {id:"preview", title:"", goal, color:ci, owner:isUs?US:"p"};
+function samplePreview(style, ci, isUs, goal, steps){
+  const h = {id:"preview", title:"", goal, color:ci, owner:isUs?US:"p", steps: steps || undefined};
   const lv = k => (hash(k+"x") % 10) < 6 ? 2 : 0;
   const box = el(`<div class="pv"></div>`);
   const c = PALETTE[ci]; box.style.setProperty("--a", c.a); box.style.setProperty("--b", c.b);
-  box.append(vizFor(h, style, {lv, done: Math.round(goal*.6), ms:["a","b"], did:(u,k) => (hash(k+u) % 10) < 6}));
+  const sa = k => (steps || [1,2,3,4,5]).map((_, i) => i).filter(i => (hash(k + "s" + i) % 10) < [6,9,8,9,7][i % 5]);
+  box.append(vizFor(h, style, {lv, sa, done: Math.round(goal*.6), ms:["a","b"], did:(u,k) => (hash(k+u) % 10) < 6}));
   return box;
 }
-function lookPicker(st, isUs){
+function lookPicker(st, isUs, getSteps = () => null){
   const wrap = el(`<div><div class="field"><span class="lbl">Look</span><div class="looks"></div></div><div class="field"><span class="lbl">Colour</span><div class="swatches"></div></div></div>`);
   const draw = () => {
     const looks = wrap.querySelector(".looks"); looks.replaceChildren();
-    (isUs() ? [["lanes","Two lanes"], ...STYLES] : STYLES).forEach(([v,label]) => {
+    const stepsNow = getSteps();
+    [...(stepsNow ? STEP_STYLES : []), ...(isUs() ? [["lanes","Two lanes"]] : []), ...STYLES].forEach(([v,label]) => {
       const b = el(`<button type="button" class="look" aria-pressed="${st.viz===v}"><span class="look-name"></span></button>`);
-      b.querySelector(".look-name").textContent = label; b.prepend(samplePreview(v, st.color, isUs(), st.goal));
+      b.querySelector(".look-name").textContent = label; b.prepend(samplePreview(v, st.color, isUs(), st.goal, stepsNow));
       b.onclick = () => { st.viz = v; draw(); };
       looks.append(b);
     });
@@ -1345,6 +1431,74 @@ function swapPanel(panel, dir){
 }
 const GOALS = [[0,"Ongoing"],[30,"30 days"],[60,"60 days"],[90,"90 days"]];
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function heatTable(title, rows, cols, vals, opts = {}){
+  // vals[r][c] in 0..1, or null for no data
+  const box = el(`<div class="htable"><div class="lbl"></div><div class="ht"></div></div>`);
+  box.querySelector(".lbl").textContent = title;
+  const t = box.querySelector(".ht");
+  t.style.gridTemplateColumns = `minmax(0,${opts.labelW || 64}px) repeat(${cols.length}, minmax(0,1fr))`;
+  t.append(el(`<span></span>`));
+  cols.forEach(c => { const s = el(`<span class="hc"></span>`); s.textContent = c; t.append(s); });
+  rows.forEach((name, r) => {
+    const l = el(`<span class="hr"></span>`); l.textContent = name; t.append(l);
+    cols.forEach((_, c) => {
+      const v = vals[r][c], cell = el(`<i></i>`);
+      if (v === null || v === undefined) cell.className = "na";
+      else {
+        cell.style.background = `color-mix(in oklab, var(--b) ${Math.round(v*100)}%, var(--a))`;
+        cell.style.opacity = (.18 + .82 * v).toFixed(2);
+        if (opts.pct) cell.textContent = Math.round(v * 100);
+        if (opts.pct && v >= .55) cell.classList.add("dk");
+      }
+      cell.title = `${name} · ${cols[c]}: ${v === null || v === undefined ? "no data" : Math.round(v*100) + "%"}`;
+      t.append(cell);
+    });
+  });
+  if (opts.note){ const n = el(`<p class="sfoot"></p>`); n.textContent = opts.note; box.append(n); }
+  return box;
+}
+function stepMap(h, y, mo){
+  const st = stepsOf(h), dim = new Date(y, mo+1, 0).getDate();
+  const box = el(`<div class="htable"><div class="lbl">Step map</div><div class="smap"></div></div>`);
+  const g = box.querySelector(".smap");
+  g.style.gridTemplateColumns = `minmax(0,64px) repeat(${dim}, minmax(0,1fr))`;
+  g.append(el(`<span></span>`));
+  for (let d = 1; d <= dim; d++){ const s = el(`<span class="hc"></span>`); if (d === 1 || d % 7 === 1 || d === dim) s.textContent = d; g.append(s); }
+  st.forEach((name, i) => {
+    const l = el(`<span class="hr"></span>`); l.textContent = name; g.append(l);
+    for (let d = 1; d <= dim; d++){
+      const k = keyOf(new Date(y, mo, d, 12)), c = el(`<i></i>`);
+      if (k > today()) c.className = "fut";
+      else if (stepArr(S.me, h.id, k).includes(i)) c.style.background = `color-mix(in oklab, var(--b) ${Math.round(i / Math.max(1, st.length - 1) * 100)}%, var(--a))`;
+      else if (isRest(h, k)) c.className = "rest";
+      c.title = `${name}, ${d} ${MONTHS[mo]}`;
+      g.append(c);
+    }
+  });
+  return box;
+}
+function stepPatterns(h, yr, first){
+  const st = stepsOf(h), firstK = keyOf(first), out = [];
+  const byM = st.map(() => Array(12).fill(null)), byW = st.map(() => Array(7).fill(0)), wDays = Array(7).fill(0);
+  for (let mo = 0; mo < 12; mo++){
+    const dim = new Date(yr, mo+1, 0).getDate(); let n = 0; const c = st.map(() => 0);
+    for (let d = 1; d <= dim; d++){
+      const dt = new Date(yr, mo, d, 12), k = keyOf(dt);
+      if (k > today() || k < firstK || isRest(h, k)) continue;
+      n++; const a = stepArr(S.me, h.id, k); a.forEach(i => c[i]++);
+      const w = (dt.getDay() + 6) % 7; wDays[w]++; a.forEach(i => byW[i][w]++);
+    }
+    if (n) st.forEach((_, i) => byM[i][mo] = c[i] / n);
+  }
+  if (byM[0].some(v => v !== null)) out.push(heatTable(`By month · ${yr}`, st, MONTHS.map(m => m[0]), byM, {}));
+  const wVals = st.map((_, i) => byW[i].map((v, w) => wDays[w] ? v / wDays[w] : null));
+  if (wDays.some(Boolean)){
+    let worst = null, wv = 2;
+    st.forEach((name, i) => wVals[i].forEach((v, w) => { if (v !== null && wDays[w] >= 3 && v < wv){ wv = v; worst = `${name} on ${["Mondays","Tuesdays","Wednesdays","Thursdays","Fridays","Saturdays","Sundays"][w]}`; } }));
+    out.push(heatTable("By weekday", st, ["M","T","W","T","F","S","S"], wVals, {pct: true, note: worst && wv < .9 ? `Weakest spot: ${worst} (${Math.round(wv*100)}%).` : ""}));
+  }
+  return out;
+}
 function stepStats(h, dayKeys, label){
   const st = stepsOf(h); if (!st || !dayKeys.length) return null;
   const counts = st.map(() => 0); let full = 0, sum = 0;
@@ -1437,6 +1591,7 @@ function openDetail(h, pickDay){
       }
       const dayKeys = []; for (let dd = 1; dd <= dim; dd++){ const k = keyOf(new Date(y, mo, dd, 12)); if (k <= today() && !isRest(h, k)) dayKeys.push(k); }
       const ss = stepStats(h, dayKeys, `${h.owner === US ? "Your steps" : "Each step"} · ${new Date(y, mo, 1).toLocaleString("en",{month:"long"})}`);
+      parts.push(stepMap(h, y, mo));
       if (ss) parts.push(ss);
     }
     if (canEdit){
@@ -1477,7 +1632,8 @@ function openDetail(h, pickDay){
       for (const dd = new Date(start); dd.getFullYear() === yr; dd.setDate(dd.getDate()+1)){ const k = keyOf(dd); if (k <= today() && k >= firstK && !isRest(h, k)) dayKeys.push(k); }
       yss = stepStats(h, dayKeys, `${h.owner === US ? "Your steps" : "Each step"} · ${yr}`);
     }
-    panel.replaceChildren(...[nav(String(yr), yr > first.getFullYear(), yr < now.getFullYear(), () => { yr--; drawYear(-1); }, () => { yr++; drawYear(1); }), bars, lab, foot, yss, minis].filter(Boolean));
+    const pats = stepsOf(h) ? stepPatterns(h, yr, first) : [];
+    panel.replaceChildren(...[nav(String(yr), yr > first.getFullYear(), yr < now.getFullYear(), () => { yr--; drawYear(-1); }, () => { yr++; drawYear(1); }), bars, lab, foot, yss, ...pats, minis].filter(Boolean));
     swapPanel(panel, dir);
   };
   d.querySelector("#d-seg").append(seg([["month","Month"],["year","Year"]], mode, v => { mode = v; v === "month" ? drawMonth() : drawYear(); }));
@@ -1498,13 +1654,17 @@ function openAdd(){
     <div class="field"><span class="lbl">Goal</span><div id="h-goal"></div></div>
     <div id="h-look"></div>
     <div class="btn-row"><button class="btn" type="submit">Add habit</button><button class="btn ghost" type="button" id="h-cancel">Cancel</button></div></form>`);
-  const picker = lookPicker(st, () => who === US);
+  const stepsIn = () => parseSteps(f.querySelector("#h-steps").value);
+  const picker = lookPicker(st, () => who === US, stepsIn);
   f.querySelector("#h-look").append(picker);
+  const syncStepLook = () => { const has = !!stepsIn(), isStepLook = STEP_STYLES.some(([v]) => v === st.viz); if (has && !isStepLook) st.viz = "stepgrid"; if (!has && isStepLook) st.viz = "goal"; picker.redraw(); };
+  f.querySelector("#h-steps").addEventListener("change", syncStepLook);
+  f.querySelector("#h-steps").addEventListener("blur", syncStepLook);
   f.querySelector("#h-who").append(seg([[S.me,"Just me"],[US,"Us"]], who, v => { who = v; if (v === US && st.viz === "goal") st.viz = "lanes"; if (v !== US && st.viz === "lanes") st.viz = "goal"; picker.redraw(); }));
   f.querySelector("#h-freq").append(seg(FREQ, freq, v => { freq = v; if (v < 7 && st.viz !== "lanes") { st.viz = "dots"; picker.redraw(); } }));
   f.querySelector("#h-goal").append(seg(GOALS, goal, v => { goal = v; st.goal = v; picker.redraw(); }));
   f.querySelector("#h-cancel").onclick = closeSheet;
-  f.querySelector("#h-prayers").onclick = () => { f.querySelector("#h-steps").value = PRAYERS.join(", "); if (!f.querySelector("#h-title").value.trim()) f.querySelector("#h-title").value = "Pray at the mosque"; };
+  f.querySelector("#h-prayers").onclick = () => { f.querySelector("#h-steps").value = PRAYERS.join(", "); if (!f.querySelector("#h-title").value.trim()) f.querySelector("#h-title").value = "Pray at the mosque"; syncStepLook(); };
   f.onsubmit = e => { e.preventDefault(); const t = f.querySelector("#h-title").value.trim(); if (!t) return f.querySelector("#h-title").focus(); const steps = parseSteps(f.querySelector("#h-steps").value); addHabit(t, who, goal, freq, steps ? {viz: st.viz, color: st.color, steps} : {viz: st.viz, color: st.color}); closeSheet(); if (S.view !== "today"){ S.view = "today"; render(); } };
   sheet(f);
 }
@@ -1535,8 +1695,9 @@ function openEdit(h){
   f.querySelector("#e-steps").value = (stepsOf(h) || []).join(", ");
   f.querySelector("#e-prayers").onclick = () => { f.querySelector("#e-steps").value = PRAYERS.join(", "); };
   f.querySelector("#e-freq").append(seg(FREQ, freq, v => freq = v));
-  const picker = lookPicker(st, () => h.owner === US);
+  const picker = lookPicker(st, () => h.owner === US, () => parseSteps(f.querySelector("#e-steps").value));
   f.querySelector("#e-look").append(picker);
+  f.querySelector("#e-steps").addEventListener("change", () => picker.redraw());
   f.querySelector("#e-goal").replaceChildren(seg(GOALS, goal, v => { goal = v; st.goal = v; picker.redraw(); }));
   const del = f.querySelector("#e-del");
   del.onclick = () => { if (!armed){ armed = true; del.textContent = "Tap again to delete"; return; } removeHabit(h.id); closeSheet(); };
@@ -1714,7 +1875,7 @@ function startDemo(){
     {id:"h8", title:"Journal", owner:"demo-me", goal:60, viz:"month", color:4},
     {id:"h6", title:"Sleep by 11", owner:"demo-me", goal:60, viz:"ring", color:3},
     {id:"h3", title:"Evening walk together", owner:US, goal:60},
-    {id:"hp", title:"Pray at the mosque", owner:"demo-me", goal:0, steps:["Fajr","Dhuhr","Asr","Maghrib","Isha"], viz:"grid", color:1},
+    {id:"hp", title:"Pray at the mosque", owner:"demo-me", goal:0, steps:["Fajr","Dhuhr","Asr","Maghrib","Isha"], color:1},
     {id:"h4", title:"Learn 10 new words", owner:"demo-partner", goal:30},
     {id:"h7", title:"Yoga", owner:"demo-partner", goal:60, perWeek:3, viz:"battery", color:3}
   ];
