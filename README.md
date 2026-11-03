@@ -112,3 +112,12 @@ The invite link contains the board's random id. Anyone with the link can join wh
 - **Sign-in popup doesn't appear on iPhone:** the app falls back to a full-page redirect automatically. If it still fails, open the site in Safari (not inside another app's built-in browser).
 - **"Missing or insufficient permissions":** the rules weren't deployed. Run `firebase deploy --only firestore:rules`.
 - **Demo mode banner:** `firebase-config.js` still has the placeholder values.
+
+## Notifications
+
+Reminders, nudges and partner progress are sent by a small free Cloudflare Worker (`notify/worker.js`), deployed as
+`two-of-us-notify` with a KV namespace bound as `KV` and a cron trigger every 15 minutes. It needs no secrets: it checks
+callers with their Firebase sign-in token and creates its own push keys on first run. To update it, paste the new
+`notify/worker.js` into the worker's code editor in the Cloudflare dashboard and deploy.
+
+On iPhone, notifications only work when the app is opened from the Home Screen (iOS 16.4 or later).

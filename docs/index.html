@@ -2410,7 +2410,7 @@ const GOOGLE_ICON = '<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.3
 // ---------- notifications ----------
 // The notification server (a free Cloudflare Worker, source in /notify) sends Web Push to the phones.
 // Each person picks their own types and times; they're kept in their own prefs. "On this phone" is per device.
-const NOTIFY_URL = window.NOTIFY_URL || "";
+const NOTIFY_URL = window.NOTIFY_URL || "https://two-of-us-notify.designs-rasheed.workers.dev";
 const NOTIF_DEFAULTS = {daily: true, dailyAt: "20:00", risk: true, riskAt: "22:00", nudges: true, progress: true};
 const notifPrefs = () => ({...NOTIF_DEFAULTS, ...(prefs().notif || {})});
 const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
