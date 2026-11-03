@@ -797,7 +797,7 @@ const orderKey = h => Number.isFinite(h.order) ? h.order : 1e6 + (h.createdAt ||
 function syncActive(){
   S.allHabits = S.allHabits.slice().sort((a, b) => orderKey(a) - orderKey(b));
   S.allHabits.forEach(h => HB[h.id] = h);
-  S.habits = S.allHabits.filter(h => !isPaused(h));
+  S.habits = S.allHabits.filter(h => !isPaused(h) && !h.archived);
 }
 const prefs = () => S.progress[S.me]?.prefs || {};
 function setPref(mut){ saveMine(n => { n.prefs = structuredClone(n.prefs || {}); mut(n.prefs); }); }
@@ -805,12 +805,18 @@ const SIZES_FOR = (h, kind) => (kind === "ours" || stepsOf(h)) ? ["w","l"] : ["s
 function sizeOf(h, kind){ const want = prefs().sizes?.[h.id], ok = SIZES_FOR(h, kind); return ok.includes(want) ? want : ok[0]; }
 const tagged = (node, h, kind) => { if (kind !== "theirs"){ node.dataset.hid = h.id; node.dataset.group = kind; } return node; };
 const perWeek = h => Number(h.perWeek) || 7;
+// a week is judged by the target it had at the time; changing "how often" only affects this week onwards
+function perWeekAt(h, monday){
+  const k = keyOf(monday);
+  for (const e of (h.freqPast || []).slice().sort((a, b) => a.to < b.to ? -1 : 1)) if (k < e.to) return Number(e.n) || 7;
+  return perWeek(h);
+}
 function mondayOf(d){ const x = new Date(d); x.setHours(12,0,0,0); x.setDate(x.getDate() - ((x.getDay()+6)%7)); return x; }
 function weekDone(h, monday){ let n = 0; for (let i = 0; i < 7; i++){ const d = new Date(monday); d.setDate(d.getDate()+i); if (levelOn(h, keyOf(d)) === 2) n++; } return n; }
 function weekState(h, monday){
   let done = 0, rest = 0;
   for (let i = 0; i < 7; i++){ const d = new Date(monday); d.setDate(d.getDate()+i); const k = keyOf(d); if (k > today()) continue; if (levelOn(h,k) === 2) done++; else if (isRest(h,k)) rest++; }
-  const need = perWeek(h) - rest;
+  const need = perWeekAt(h, monday) - rest;
   return need <= 0 ? (done ? "met" : "skip") : done >= need ? "met" : "miss";
 }
 function thisWeek(h){ return weekDone(h, mondayOf(nowD())); }
@@ -1070,6 +1076,28 @@ function inviteButtons(){
   copy.onclick = async () => { try { await navigator.clipboard.writeText(inviteLink()); toast("Invite link copied"); } catch { prompt("Copy this link", inviteLink()); } };
   return navigator.share ? [share, copy] : [copy];
 }
+// a habit that reached its goal asks once what's next: keep going, aim higher, or archive (history is kept)
+const goalReached = h => { const g = goalOf(h); return g > 0 && completed(h) >= g; };
+function goalCard(){
+  const seen = k => { try { return localStorage.getItem(k); } catch { return null; } };
+  const h = S.habits.find(h => (h.owner === S.me || h.owner === US) && goalReached(h) && !seen(`goal-ok:${h.id}:${goalOf(h)}`));
+  if (!h) return null;
+  const g = goalOf(h), next = GOALS.map(x => x[0]).find(v => v > completed(h)), c = colorOf(h);
+  const t = el(`<section class="tile wide catchup goal-card" style="--a:${c.a};--b:${c.b}"><div class="cu-head"><div><b></b><small></small></div><button class="cu-x" type="button">Later</button></div><div class="btn-row"></div></section>`);
+  t.querySelector("b").textContent = `${h.title} reached its ${g}-day goal`;
+  t.querySelector("small").textContent = `${completed(h)} days done. What's next?`;
+  const row = t.querySelector(".btn-row");
+  const btn = (label, ghost, fn) => { const b = el(`<button type="button" class="btn${ghost ? " ghost" : ""}"></button>`); b.textContent = label; b.onclick = fn; row.append(b); };
+  btn("Keep going", false, () => { updateHabit(h.id, {goal: 0}); toast(`${h.title} is now ongoing`); });
+  if (next) btn(`Aim for ${next} days`, true, () => { updateHabit(h.id, {goal: next}); toast(`New goal: ${next} days`); });
+  btn("Archive", true, () => archiveHabit(h));
+  t.querySelector(".cu-x").onclick = () => { try { localStorage.setItem(`goal-ok:${h.id}:${g}`, "1"); } catch {} render(); };
+  return t;
+}
+function archiveHabit(h){
+  updateHabit(h.id, {archived: true});
+  toast(`Archived "${h.title}". Its history is kept.`, {label: "Undo", run: () => updateHabit(h.id, {archived: false})});
+}
 // "Forgot yesterday?" — daily habits you didn't log yesterday, one tap each to fill in
 function catchUpTile(){
   const y = keyOf(daysAgo(1));
@@ -1181,6 +1209,7 @@ function todayView(){
   if (cz) out.push(customisePanel()); else out.push(lay);
   if (!cz){
     if (S.allHabits.length < 3){ const q = emptyTile(true); if (q){ q.dataset.key = "qa"; out.push(q); } }
+    const gc = goalCard(); if (gc){ gc.dataset.key = "goal"; out.push(gc); }
     const cu = catchUpTile(); if (cu){ cu.dataset.key = "cu"; out.push(cu); }
     const iv = inviteTile(); if (iv){ iv.dataset.key = "iv"; out.push(iv); }
     else { const na = notifCard(); if (na){ na.dataset.key = "na"; out.push(na); } }
@@ -2136,7 +2165,14 @@ function openEdit(h){
       // keep every existing step (an emptied name falls back to the old one), then any new non-empty steps
       const steps = old.map((n, i) => names[i] || n).concat(names.slice(old.length).filter(Boolean)).slice(0, 12);
       patch.steps = steps;
-    } else patch.perWeek = freq;
+    } else {
+      patch.perWeek = freq;
+      if (freq !== perWeek(h)){
+        const M = keyOf(mondayOf(nowD())), past = (h.freqPast || []).filter(e => e.to <= M);
+        if (!past.some(e => e.to === M)) past.push({to: M, n: perWeek(h)});
+        patch.freqPast = past;
+      }
+    }
     updateHabit(h.id, patch); closeSheet();
   };
   sheet(f);
@@ -2178,9 +2214,16 @@ function openManage(){
   };
   const mine = S.allHabits.filter(h => h.owner === S.me || h.owner === US);
   const list = d.querySelector("#m-list");
+  const arch = mine.filter(h => h.archived); mine.splice(0, mine.length, ...mine.filter(h => !h.archived));
   const act = mine.filter(h => !isPaused(h)), pz = mine.filter(isPaused);
   if (!act.length) list.append(el(`<p class="soft">No active habits.</p>`));
   act.forEach(h => list.append(row(h)));
+  if (arch.length){
+    const p = d.querySelector("#m-paused"); p.append(el(`<div class="field" style="margin:18px 0 8px"><span class="lbl">Archived</span></div>`));
+    const l = el(`<div class="list"></div>`);
+    arch.forEach(h => { const c = colorOf(h), r = el(`<button class="row" style="--a:${c.a};--b:${c.b};opacity:.7"><i></i><div><b></b><small></small></div></button>`); r.querySelector("b").textContent = h.title; r.querySelector("small").textContent = `${completed(h)} days done · tap to bring back`; r.onclick = () => { updateHabit(h.id, {archived: false}); toast(`"${h.title}" is back on your board`); openManage(); }; l.append(r); });
+    p.append(l);
+  }
   if (pz.length){ const p = d.querySelector("#m-paused"); p.append(el(`<div class="field" style="margin:18px 0 8px"><span class="lbl">Paused</span></div>`)); const l = el(`<div class="list"></div>`); pz.forEach(h => l.append(row(h))); p.append(l); }
   d.querySelector("#m-add").onclick = openAdd;
   d.querySelector("#m-cz").onclick = enterCustomise;
