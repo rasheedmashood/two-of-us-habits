@@ -230,7 +230,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .lay-ind{position:absolute;top:4px;bottom:4px;left:0;border-radius:99px;background:var(--ink);transition:transform .5s var(--spring),width .5s var(--spring)}
 /* pattern rows */
 .prow{padding:14px 14px 14px}
-.p-head{display:flex;align-items:center;gap:10px}
+.p-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.p-head > .p-steps{flex-basis:100%;margin-top:4px}
+.p-head > .p-steps .steps{margin:0}
 .p-ic{width:22px;height:22px;flex:none;color:color-mix(in oklab, var(--b), var(--ink) var(--icon-mix))}
 .p-ic svg{width:22px;height:22px}
 .p-title{min-width:0;flex:1;border:0;background:none;padding:0;text-align:left;font-weight:600;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -242,7 +244,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .p-heat{display:grid;grid-template-rows:repeat(7,auto);grid-auto-flow:column;gap:3px}
 .p-heat i{aspect-ratio:1;border-radius:3px;background:var(--cell)}
 .p-heat i.future{background:transparent}
-.p-heat i.now{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.p-heat i.now{box-shadow:inset 0 0 0 1.5px color-mix(in oklab,var(--ink) 35%,transparent)}
 .enter .p-heat > i{animation:popin .45s var(--spring) both;animation-delay:calc(var(--i,0)*55ms + 100ms + var(--j,0)*16ms)}
 /* week rows */
 .wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:12px}
@@ -252,7 +254,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .wk i.on{background:linear-gradient(135deg,var(--a),var(--b))}
 .wk i.half{background:var(--a);opacity:.4}
 .wk i.future{background:transparent;box-shadow:inset 0 0 0 1px var(--cell)}
-.wk div.t i{box-shadow:0 0 0 2px var(--tile),0 0 0 3.5px var(--ink)}
+.wk div.t i{box-shadow:inset 0 0 0 2px color-mix(in oklab,var(--ink) 28%,transparent)}
+.wk div.t i.on{box-shadow:none}
 .enter .wk > div{animation:popin .45s var(--spring) both;animation-delay:calc(var(--i,0)*55ms + 100ms + var(--j,0)*30ms)}
 /* square grids: size rows from the container width (Safari ignores aspect-ratio when sizing grid rows) */
 .viz,.prow,#d-panel,.mini-m{container-type:inline-size}
@@ -946,12 +949,15 @@ function layoutSwitch(){
 function heatWeeks(pad = 28){ const w = Math.min(window.innerWidth, 520) - 32 - pad; return Math.max(16, Math.min(53, Math.floor((w + 3) / 13))); }
 function rowHead(h, kind){
   const c = colorOf(h);
-  const head = el(`<div class="p-head"><span class="p-ic">${iconFor(h.title)}</span><button class="p-title"></button><span class="p-meta"><span>${ICON.flame}${streak(h)}</span><span>${completed(h)}d</span></span></div>`);
+  const head = el(`<div class="p-head"><span class="p-ic">${iconFor(h.title)}</span><button class="p-title"></button><span class="p-meta"></span></div>`);
+  const sk = streak(h), weekly = perWeek(h) < 7;
+  if (sk > 0){ const m = el(`<span>${ICON.flame}${sk}</span>`); m.title = `${sk} ${weekly ? "week" : "day"} streak`; m.setAttribute("aria-label", m.title); head.querySelector(".p-meta").append(m); }
   const t = head.querySelector(".p-title"); t.textContent = h.title; t.onclick = e => morphOpen(e.currentTarget.closest(".tile"), h); t.setAttribute("aria-label", `History for ${h.title}`);
   if (kind === "theirs"){
     if (didOn(h.owner,h.id,today())) head.append(el(`<span class="chip-btn done" aria-label="Done today">${ICON.tick}</span>`));
     else { const n = el(`<button class="chip-btn txt" aria-label="Nudge">${ICON.bell}</button>`); n.onclick = async () => { n.disabled = true; n.style.opacity = .5; await sendNudge(h); }; head.append(n); }
-  } else head.append(stepsOf(h) ? stepPills(h, S.me, true, true) : checkBtn(h));
+  } else if (stepsOf(h)){ const w = el(`<div class="p-steps"></div>`); w.append(stepPills(h, S.me, true)); head.append(w); }
+  else head.append(checkBtn(h));
   return head;
 }
 function heatBlock(h, N){
