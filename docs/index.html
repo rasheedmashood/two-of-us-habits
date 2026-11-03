@@ -99,18 +99,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .wide{grid-column:1/-1}
 .label{font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:10px 6px 0;grid-column:1/-1}
 
-/* hero rings */
+
 .hero-top{display:flex;justify-content:center;align-items:center;gap:6px;color:var(--warn);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
 .hero-top svg{width:14px;height:14px}
-.rings{display:grid;grid-template-columns:repeat(auto-fit,minmax(54px,1fr));gap:8px 4px;margin-top:12px}
-.ring{border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
-.ring .g{position:relative;width:54px;height:54px}
-.ring svg.arc{width:54px;height:54px;display:block}
-.ring .ic{position:absolute;inset:0;display:grid;place-items:center;color:color-mix(in oklab, var(--c), var(--ink) var(--icon-mix))}
-.ring .ic svg{width:20px;height:20px}
-.ring span{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:-6px}
-.ring.on span{color:var(--ink)}
-
 /* couple strip */
 .duo-head{display:flex;align-items:flex-start;gap:8px}
 .duo-side{min-width:0}
@@ -342,8 +333,6 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 .chip-btn.hold.holding .hold-fill{transform:scaleX(1);transition:transform .48s cubic-bezier(.4,0,.6,1)}
 .chip-btn.hold.holding{transform:scale(1.06)}
 .chip-btn[aria-pressed="true"] .hold-fill{background:var(--track)}
-.ring.hold.holding .g{transform:scale(.86);transition:transform .42s cubic-bezier(.4,0,.6,1)}
-.ring.hold.holding .ic{filter:brightness(1.4)}
 /* swipe to tick */
 .tile.swiping{transition:none}
 .swipe-fx{position:absolute;inset:0;border-radius:inherit;pointer-events:none;overflow:hidden;z-index:2}
@@ -625,9 +614,6 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 .enter .v-line .tr i{animation:slide 1s var(--ease) both;animation-delay:calc(var(--i,0)*55ms + 200ms)}
 @keyframes slide{from{left:0}}
 .enter .lane-cell{animation:popin .45s var(--spring) both;animation-delay:calc(var(--i,0)*55ms + 120ms + var(--j,0)*10ms)}
-.ring .g{transition:transform .3s var(--spring)}
-.ring:active .g{transform:scale(.88)}
-.ring.pop .g{animation:pop .6s var(--spring)}
 .pop .chip-btn[aria-pressed="true"]{animation:pop .55s var(--spring)}
 @keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
 .tile.pop{animation:glow 1s var(--ease)}
@@ -1107,7 +1093,6 @@ function customisePanel(){
     c.onclick = () => { setPref(q => { q[key] = !q[key]; if (!q[key]) delete q[key]; }); flipRender(); };
     tg.append(c);
   };
-  add("Today's rings", "hideHero");
   if (pid) add(`You & ${nameOf(pid)}`, "hideDuo");
   t.querySelector("#cz-done").onclick = exitCustomise;
   return t;
@@ -1140,7 +1125,6 @@ function todayView(){
     else { const na = notifCard(); if (na){ na.dataset.key = "na"; out.push(na); } }
   }
   const tiles = S.layout === "tiles";
-  if (tiles && (mine.length + ours.length) && !p.hideHero){ const hero = heroTile([...mine, ...ours]); hero.dataset.key = "hero"; out.push(hero); }
   if (tiles && pid && !p.hideDuo){ const duo = duoTile(pid); duo.dataset.key = "duo"; out.push(duo); }
   const mk = S.layout === "year" ? patternRow : S.layout === "week" ? weekRow : null;
   const section = (label, list, kind, emptyText) => {
@@ -1162,32 +1146,6 @@ function todayView(){
 }
 function note(text){ const d = el(`<div class="tile wide"><p class="soft"></p></div>`); d.querySelector("p").textContent = text; return d; }
 
-function heroTile(hs){
-  const best = Math.max(0, ...hs.map(streak));
-  const bestH = hs.find(h => streak(h) === best);
-  const t = el(`<section class="tile wide"><div class="hero-top">${ICON.flame}<span></span></div><div class="rings"></div></section>`);
-  t.querySelector(".hero-top span").textContent = best ? `${best} ${bestH && perWeek(bestH)<7?"week":"day"} streak` : "Start a streak today";
-  const rings = t.querySelector(".rings");
-  hs.forEach(h => {
-    const c = colorOf(h), on = didOn(S.me, h.id, today());
-    const weekly = perWeek(h) < 7;
-    const st = stepsOf(h), sa = st ? stepArr(S.me, h.id, today()) : null;
-    const frac = st ? sa.length / st.length : weekly ? Math.min(1, thisWeek(h)/perWeek(h)) : (on ? 1 : 0);
-    const label = on ? "Done" : isRest(h, today()) && !(sa && sa.length) ? "Rest" : st ? `${sa.length}/${st.length}` : weekly ? `${Math.min(thisWeek(h),perWeek(h))}/${perWeek(h)}` : "To do";
-    const b = el(`<button class="ring ${on?'on':''}" aria-pressed="${on}" style="--c:${on?c.b:'var(--muted)'}"><div class="g">${arc(60,6,frac,c,"#2c2830")}<div class="ic">${iconFor(h.title)}</div></div><span></span></button>`);
-    b.querySelector("span").textContent = label;
-    b.setAttribute("aria-label", `${h.title}: ${on ? "done today, press and hold to undo" : "press and hold when done"}`);
-    if (st){
-      const nxt = st.findIndex((_, j) => !sa.includes(j));
-      b.setAttribute("aria-label", `${h.title}: ${sa.length} of ${st.length} done${nxt >= 0 ? `, tap to mark ${st[nxt]}` : ""}`);
-      if (nxt >= 0) holdAction(b, () => toggleStep(h.id, today(), nxt), 380); else b.onclick = () => openDetail(h);
-    } else holdAction(b, () => toggle(h.id), 420);
-    b.classList.add("hold");
-    if (h.id === popId) b.classList.add("pop");
-    rings.append(b);
-  });
-  return t;
-}
 
 function duoTile(pid){
   const t = today();
