@@ -805,12 +805,18 @@ const SIZES_FOR = (h, kind) => (kind === "ours" || stepsOf(h)) ? ["w","l"] : ["s
 function sizeOf(h, kind){ const want = prefs().sizes?.[h.id], ok = SIZES_FOR(h, kind); return ok.includes(want) ? want : ok[0]; }
 const tagged = (node, h, kind) => { if (kind !== "theirs"){ node.dataset.hid = h.id; node.dataset.group = kind; } return node; };
 const perWeek = h => Number(h.perWeek) || 7;
+// a week is judged by the target it had at the time; changing "how often" only affects this week onwards
+function perWeekAt(h, monday){
+  const k = keyOf(monday);
+  for (const e of (h.freqPast || []).slice().sort((a, b) => a.to < b.to ? -1 : 1)) if (k < e.to) return Number(e.n) || 7;
+  return perWeek(h);
+}
 function mondayOf(d){ const x = new Date(d); x.setHours(12,0,0,0); x.setDate(x.getDate() - ((x.getDay()+6)%7)); return x; }
 function weekDone(h, monday){ let n = 0; for (let i = 0; i < 7; i++){ const d = new Date(monday); d.setDate(d.getDate()+i); if (levelOn(h, keyOf(d)) === 2) n++; } return n; }
 function weekState(h, monday){
   let done = 0, rest = 0;
   for (let i = 0; i < 7; i++){ const d = new Date(monday); d.setDate(d.getDate()+i); const k = keyOf(d); if (k > today()) continue; if (levelOn(h,k) === 2) done++; else if (isRest(h,k)) rest++; }
-  const need = perWeek(h) - rest;
+  const need = perWeekAt(h, monday) - rest;
   return need <= 0 ? (done ? "met" : "skip") : done >= need ? "met" : "miss";
 }
 function thisWeek(h){ return weekDone(h, mondayOf(nowD())); }
@@ -2136,7 +2142,14 @@ function openEdit(h){
       // keep every existing step (an emptied name falls back to the old one), then any new non-empty steps
       const steps = old.map((n, i) => names[i] || n).concat(names.slice(old.length).filter(Boolean)).slice(0, 12);
       patch.steps = steps;
-    } else patch.perWeek = freq;
+    } else {
+      patch.perWeek = freq;
+      if (freq !== perWeek(h)){
+        const M = keyOf(mondayOf(nowD())), past = (h.freqPast || []).filter(e => e.to <= M);
+        if (!past.some(e => e.to === M)) past.push({to: M, n: perWeek(h)});
+        patch.freqPast = past;
+      }
+    }
     updateHabit(h.id, patch); closeSheet();
   };
   sheet(f);
