@@ -946,6 +946,7 @@ function render(){
   else window.scrollTo(0, y);
   runMoments();
   hideSplash();
+  document.querySelector(".nav").hidden = false; // the board always has its bar, even after the sign-in screen
   syncNotify();
   popId = null;
   document.querySelectorAll(".nav button").forEach(b => { if (b.dataset.view === S.view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
