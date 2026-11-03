@@ -410,9 +410,25 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 /* today marker, one rule for every chart: a soft ring inside today's cell until something is logged for it.
    Change --today-ring (or the width) here and every chart follows. Beads keep their own glowing "current bead". */
 :root{--today-ring:color-mix(in oklab,var(--ink) 30%,transparent);--today-w:1.5px}
-:is(.v-dots i,.v-grid i,.p-heat i,.v-sgrid i,.v-month i).now:not([style*="background"]):not(.on),
+:is(.v-dots i,.v-grid i,.p-heat i,.v-sgrid i,.v-month i,.li-wk i).now:not([style*="background"]):not(.on),
 .wk div.t i:not(.on):not(.half),
 .v-stack > div.now:not(:has(i[style*="background"])){box-shadow:inset 0 0 0 var(--today-w) var(--today-ring)}
+/* list layout */
+.lrow{grid-column:1/-1;flex-direction:row;align-items:center;gap:12px;padding:13px 16px;border-radius:0;box-shadow:none;margin-top:-12px;background:var(--tile)}
+.lrow.lr-first{margin-top:0;border-radius:24px 24px 0 0}
+.lrow.lr-last{border-radius:0 0 24px 24px}
+.lrow.lr-first.lr-last{border-radius:24px}
+.lrow:not(.lr-first)::before{content:"";position:absolute;left:16px;right:16px;top:0;height:1px;background:var(--rim)}
+.lrow.lifting{border-radius:24px}
+.lrow.lifting::before{display:none}
+.lr-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.lrow .p-title{flex:none;font-size:15.5px;max-width:100%}
+.li-wk{display:flex;gap:4px}
+.li-wk i{width:16px;height:16px;border-radius:5px;background:var(--cell)}
+.li-wk i.fut{background:transparent;box-shadow:inset 0 0 0 1px var(--cell)}
+.lr-steps{min-width:46px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.lr-steps[aria-pressed="true"]{background:linear-gradient(90deg,var(--a),var(--b));color:#141016}
+@media (max-width:430px){.lay button:not([aria-pressed="true"]) span{display:none}.lay button{padding:8px 11px}}
 /* notifications */
 .nrow{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:18px;background:var(--track);margin-top:8px}
 .nrow > div{flex:1;min-width:0}.nrow b{display:block;font-size:15px;font-weight:600}.nrow small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.35}
@@ -458,7 +474,7 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 .wk div.tap i{transition:transform .25s var(--spring)}
 .wk div.tap:active i{transform:scale(.86)}
 /* rest days: striped, never counted as a miss */
-:is(.p-heat,.wk,.v-month,.mini-m div) i.rest{background:repeating-linear-gradient(135deg,var(--cell) 0 2px,transparent 2px 5px);box-shadow:inset 0 0 0 1px var(--cell)}
+:is(.p-heat,.wk,.v-month,.mini-m div,.li-wk) i.rest{background:repeating-linear-gradient(135deg,var(--cell) 0 2px,transparent 2px 5px);box-shadow:inset 0 0 0 1px var(--cell)}
 .v-month i.half{background:var(--a);opacity:.5;color:#141016}
 .v-month.tappable i[role="button"]{cursor:pointer;transition:transform .2s var(--spring)}
 .v-month.tappable i[role="button"]:active{transform:scale(.88)}
@@ -934,7 +950,8 @@ function topBar(){
 const LAYOUTS = [
   ["tiles","Tiles",'<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>'],
   ["week","Week",'<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'],
-  ["year","Year",'<path d="M4 5h3v3H4zM10.5 5h3v3h-3zM17 5h3v3h-3zM4 10.5h3v3H4zM10.5 10.5h3v3h-3zM17 10.5h3v3h-3zM4 16h3v3H4zM10.5 16h3v3h-3zM17 16h3v3h-3z"/>']
+  ["year","Year",'<path d="M4 5h3v3H4zM10.5 5h3v3h-3zM17 5h3v3h-3zM4 10.5h3v3H4zM10.5 10.5h3v3h-3zM17 10.5h3v3h-3zM4 16h3v3H4zM10.5 16h3v3h-3zM17 16h3v3h-3z"/>'],
+  ["list","List",'<path d="M4 6.5h16M4 12h16M4 17.5h16"/>']
 ];
 try { S.layout = localStorage.getItem("layout") || "tiles"; } catch { S.layout = "tiles"; }
 function layoutSwitch(){
@@ -946,6 +963,40 @@ function layoutSwitch(){
   });
   requestAnimationFrame(() => { const on = d.querySelector('[aria-pressed="true"]'), ind = d.querySelector(".lay-ind"); if (on){ ind.style.width = on.offsetWidth + "px"; ind.style.transform = `translateX(${on.offsetLeft}px)`; } });
   return d;
+}
+// List layout: one quiet line per habit — name, this week's days in the habit's colour, streak, and the tick
+function listRow(h, kind){
+  const c = colorOf(h), t = today(), mon = mondayOf(nowD()), steps = stepsOf(h);
+  const row = el(`<article class="tile lrow${h.id === popId ? " pop" : ""}" style="--a:${c.a};--b:${c.b}"><div class="lr-main"><button class="p-title"></button><span class="li-wk" aria-hidden="true"></span></div><span class="p-meta"></span></article>`);
+  const tb = row.querySelector(".p-title"); tb.textContent = h.title; tb.setAttribute("aria-label", `History for ${h.title}`);
+  tb.onclick = e => morphOpen(e.currentTarget.closest(".tile"), h);
+  const wk = row.querySelector(".li-wk");
+  for (let i = 0; i < 7; i++){
+    const d = new Date(mon); d.setDate(d.getDate() + i);
+    const k = keyOf(d), cell = el(`<i></i>`); cell.dataset.k = k;
+    if (k > t) cell.className = "fut";
+    else {
+      const lv = levelOn(h, k);
+      if (lv === 2) cell.style.background = `color-mix(in oklab, var(--b) ${Math.round(i / 6 * 100)}%, var(--a))`;
+      else if (lv === 1){ cell.style.background = "var(--a)"; cell.style.opacity = .45; }
+      else if (isRest(h, k)) cell.className = "rest";
+      if (k === t) cell.classList.add("now");
+    }
+    wk.append(cell);
+  }
+  const sk = streak(h);
+  if (sk > 0){ const m = el(`<span>${ICON.flame}${sk}</span>`); m.title = `${sk} ${perWeek(h) < 7 ? "week" : "day"} streak`; m.setAttribute("aria-label", m.title); row.querySelector(".p-meta").append(m); }
+  if (kind === "theirs"){
+    if (didOn(h.owner, h.id, t)) row.append(el(`<span class="chip-btn done" aria-label="Done today">${ICON.tick}</span>`));
+    else { const n = el(`<button class="chip-btn txt" aria-label="Nudge">${ICON.bell}</button>`); n.onclick = async () => { n.disabled = true; n.style.opacity = .5; await sendNudge(h); }; row.append(n); }
+  } else if (steps){
+    const b = el(`<button type="button" class="chip-btn txt lr-steps"></button>`);
+    b.textContent = stepCount(h, S.me); b.setAttribute("aria-label", `${h.title}: ${stepCount(h, S.me)} today. Open to tick`);
+    if (didOn(S.me, h.id, t)) b.setAttribute("aria-pressed", "true");
+    b.onclick = e => { e.stopPropagation(); openDetail(h); };
+    row.append(b);
+  } else row.append(checkBtn(h));
+  return row;
 }
 function heatWeeks(pad = 28){ const w = Math.min(window.innerWidth, 520) - 32 - pad; return Math.max(16, Math.min(53, Math.floor((w + 3) / 13))); }
 function rowHead(h, kind){
@@ -1126,12 +1177,16 @@ function todayView(){
   }
   const tiles = S.layout === "tiles";
   if (tiles && pid && !p.hideDuo){ const duo = duoTile(pid); duo.dataset.key = "duo"; out.push(duo); }
-  const mk = S.layout === "year" ? patternRow : S.layout === "week" ? weekRow : null;
+  const mk = S.layout === "year" ? patternRow : S.layout === "week" ? weekRow : S.layout === "list" ? listRow : null;
   const section = (label, list, kind, emptyText) => {
     out.push(secLabel(label, kind, list.length));
     if (p.collapsed?.[kind] && !cz) return;
     if (!list.length){ if (emptyText){ const n = note(emptyText); n.dataset.key = "note-" + kind; n.dataset.dropgroup = kind; out.push(n); } return; }
-    if (mk){ list.forEach(h => { const t = tagged(mk(h, kind), h, kind); out.push(t); }); return; }
+    if (mk){
+      const rows = list.map(h => tagged(mk(h, kind), h, kind));
+      if (mk === listRow){ rows[0].classList.add("lr-first"); rows[rows.length - 1].classList.add("lr-last"); }
+      out.push(...rows); return;
+    }
     if (kind === "ours"){ list.forEach(h => { const t = tagged(sharedTile(h), h, kind); if (cz) sizeChips(h, kind, t); out.push(t); }); return; }
     // squares pair up two per row; a square that would sit alone stretches to Wide
     const sizes = list.map(h => sizeOf(h, kind)), eff = sizes.slice(); let open = -1;
@@ -2710,7 +2765,7 @@ function tipFor(h, k, s, u){
 }
 (function gestures(){
   const HOLD = 380, SCRUB_HOLD = 200, SLOP = 8, VIEWS = ["today", "week", "us"];
-  const SCRUB_SEL = ".p-heat, .v-grid, .v-sgrid, .smap, .v-sq, .v-dots, .v-bars, .v-wave, .v-beads, .lanes, .v-stack, .v-month:not(.cal)";
+  const SCRUB_SEL = ".li-wk, .p-heat, .v-grid, .v-sgrid, .smap, .v-sq, .v-dots, .v-bars, .v-wave, .v-beads, .lanes, .v-stack, .v-month:not(.cal)";
   let g = null, drag = null, raf = 0, suppressClick = false, hoverCell = null;
   const tip = el(`<div class="scrub-tip" aria-hidden="true" hidden></div>`); document.body.append(tip);
   const pageRect = n => { const r = n.getBoundingClientRect(); return {x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height}; };
