@@ -573,6 +573,8 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:4px;border-radius:16px;background:var(--track)}
 .seg button{border:0;background:none;border-radius:12px;padding:10px 4px;font-weight:600;font-size:14px;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg.seven{grid-template-columns:repeat(6,minmax(0,1fr)) minmax(0,1.6fr);grid-auto-flow:row}
+.seg.seven button{padding:10px 0;font-variant-numeric:tabular-nums}
 .hint{font-size:13px;color:var(--muted);margin:-6px 0 16px;line-height:1.4}
 .list{display:grid;gap:8px}
 .row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;background:var(--track);border:0;width:100%;text-align:left}
@@ -1728,7 +1730,16 @@ function lookPicker(st, isUs, getSteps = () => null){
 
 const PRAYERS = ["Fajr","Dhuhr","Asr","Maghrib","Isha"];
 function parseSteps(v){ const a = String(v || "").split(",").map(x => x.trim()).filter(Boolean).slice(0, 12); return a.length >= 2 ? a : null; }
-const FREQ = [[7,"Daily"],[5,"5× wk"],[3,"3× wk"],[1,"1× wk"]];
+// how often: any number of days a week, or daily
+const FREQ = [[1,"1"],[2,"2"],[3,"3"],[4,"4"],[5,"5"],[6,"6"],[7,"Daily"]];
+const freqHint = v => v >= 7 ? "Every day. Rest days and pauses never break your streak." : `Any ${v} day${v > 1 ? "s" : ""} a week. The streak counts weeks you hit it (weeks start Monday).`;
+function freqSeg(value, onPick, hintEl){
+  const d = seg(FREQ, value, v => { if (hintEl) hintEl.textContent = freqHint(v); onPick(v); });
+  d.classList.add("seven");
+  d.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-label", i < 6 ? `${i + 1} day${i ? "s" : ""} a week` : "Every day"));
+  if (hintEl) hintEl.textContent = freqHint(value);
+  return d;
+}
 function swapPanel(panel, dir){
   panel.classList.add("enter"); stagger(panel);
   if (reduced || !panel.animate || !panel.isConnected) return;
@@ -2006,7 +2017,7 @@ function openAdd(){
     <div class="field"><span class="lbl">Who's doing it</span><div id="h-who"></div></div>
     <p class="hint">"Us" habits count once you both check them off.</p>
     <div id="h-freq-wrap"><div class="field"><span class="lbl">How often</span><div id="h-freq"></div></div>
-    <p class="hint">Weekly habits keep their streak as long as you hit the target each week (weeks start Monday).</p></div>
+    <p class="hint" id="h-freq-hint"></p></div>
     <div class="field"><span class="lbl">Goal</span><div id="h-goal"></div></div>
     <div id="h-look"></div>
     <div class="btn-row"><button class="btn" type="submit">Add habit</button><button class="btn ghost" type="button" id="h-cancel">Cancel</button></div></form>`);
@@ -2028,7 +2039,7 @@ function openAdd(){
     drawGoal(); picker.redraw();
   }));
   f.querySelector("#h-who").append(seg([[S.me,"Just me"],[US,"Us"]], who, v => { who = v; if (kind !== "steps"){ if (v === US && st.viz === "goal") st.viz = "lanes"; if (v !== US && st.viz === "lanes") st.viz = "goal"; } picker.redraw(); }));
-  f.querySelector("#h-freq").append(seg(FREQ, freq, v => { freq = v; if (v < 7 && st.viz !== "lanes") { st.viz = "dots"; picker.redraw(); } }));
+  f.querySelector("#h-freq").append(freqSeg(freq, v => { freq = v; if (v < 7 && st.viz !== "lanes") { st.viz = "dots"; picker.redraw(); } }, f.querySelector("#h-freq-hint")));
   drawGoal();
   f.querySelector("#h-cancel").onclick = closeSheet;
   f.onsubmit = e => {
@@ -2052,7 +2063,7 @@ function openEdit(h){
   const f = el(`<form><h3>Edit habit</h3>
     <div class="field"><label for="e-title">Habit</label><input id="e-title" maxlength="60" autocomplete="off"></div>
     ${hasSteps ? `<div id="e-steps-wrap"><div class="field"><span class="lbl">Steps</span></div><p class="hint">You can rename steps and add new ones. Existing steps can't be removed, so your history stays accurate.</p></div>` : ""}
-    ${hasSteps ? "" : `<div class="field"><span class="lbl">How often</span><div id="e-freq"></div></div>`}
+    ${hasSteps ? "" : `<div class="field"><span class="lbl">How often</span><div id="e-freq"></div></div><p class="hint" id="e-freq-hint"></p>`}
     <div class="field"><span class="lbl">Goal</span><div id="e-goal"></div></div>
     <div id="e-look"></div>
     <div class="btn-row"><button class="btn" type="submit">Save</button><button class="btn ghost" type="button" id="e-pause"></button><button class="btn danger" type="button" id="e-del">Delete</button></div>
@@ -2070,7 +2081,7 @@ function openEdit(h){
   let editor = null;
   const picker = lookPicker(st, () => h.owner === US, () => hasSteps ? (editor && editor.get().length >= 2 ? editor.get() : stepsOf(h)) : null);
   if (hasSteps){ editor = stepsEditor(stepsOf(h), () => picker.redraw(), stepsOf(h).length); f.querySelector("#e-steps-wrap .field").append(editor.el); }
-  else f.querySelector("#e-freq").append(seg(FREQ, freq, v => freq = v));
+  else f.querySelector("#e-freq").append(freqSeg(freq, v => freq = v, f.querySelector("#e-freq-hint")));
   f.querySelector("#e-look").append(picker);
   f.querySelector("#e-goal").replaceChildren(seg(GOALS, goal, v => { goal = v; st.goal = v; picker.redraw(); }));
   const del = f.querySelector("#e-del");
