@@ -433,6 +433,14 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 .goal-card .btn-row{margin-top:14px;display:flex;flex-wrap:nowrap;gap:8px}
 .goal-card .btn{padding:10px 14px;font-size:14px;white-space:nowrap;flex:none}
 .goal-card .btn:last-child{margin-left:auto}
+/* planned days: days off shrink to a small dot (one rule for every day-of-week view) */
+:is(.li-wk,.wk,.v-dots) i.off{background:transparent!important;box-shadow:none!important;opacity:1!important;display:grid;place-items:center}
+:is(.li-wk,.wk,.v-dots) i.off::after{content:"";width:4px;height:4px;border-radius:50%;background:var(--faint)}
+.pick-link{color:var(--ink);font-weight:600;text-decoration:underline;text-underline-offset:3px;white-space:nowrap;background:none;border:0;padding:0;font:inherit;cursor:pointer}
+.dayrow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}
+.dchip{border:0;height:40px;border-radius:12px;background:var(--track);font-weight:700;font-size:13px;color:var(--muted);transition:transform .2s var(--spring),background .2s}
+.dchip:active{transform:scale(.9)}
+.dchip[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 /* notifications */
 .nrow{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:18px;background:var(--track);margin-top:8px}
 .nrow > div{flex:1;min-width:0}.nrow b{display:block;font-size:15px;font-weight:600}.nrow small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.35}
@@ -808,6 +816,14 @@ const SIZES_FOR = (h, kind) => (kind === "ours" || stepsOf(h)) ? ["w","l"] : ["s
 function sizeOf(h, kind){ const want = prefs().sizes?.[h.id], ok = SIZES_FOR(h, kind); return ok.includes(want) ? want : ok[0]; }
 const tagged = (node, h, kind) => { if (kind !== "theirs"){ node.dataset.hid = h.id; node.dataset.group = kind; } return node; };
 const perWeek = h => Number(h.perWeek) || 7;
+// optional planned days for "N days a week" habits (0 = Monday). A plan, not a rule: any day still counts.
+const DAYNAMES = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const plannedDays = h => perWeek(h) < 7 && Array.isArray(h.days) && h.days.length ? h.days : null;
+const dayIdx = k => (dk(k).getDay() + 6) % 7;
+const planned = (h, k) => { const p = plannedDays(h); return !p || p.includes(dayIdx(k)); };
+const isOff = (h, k) => !planned(h, k);
+const listDays = a => a.length === 1 ? DAYNAMES[a[0]] : a.slice(0, -1).map(i => DAYNAMES[i]).join(", ") + " and " + DAYNAMES[a[a.length - 1]];
+const freqLabel = h => perWeek(h) >= 7 ? "daily" : plannedDays(h) ? plannedDays(h).map(i => DAYNAMES[i]).join(", ") : perWeek(h) + "× a week";
 // a week is judged by the target it had at the time; changing "how often" only affects this week onwards
 function perWeekAt(h, monday){
   const k = keyOf(monday);
@@ -872,7 +888,7 @@ function headline(){
   const mine = S.habits.filter(h => h.owner === S.me || h.owner === US);
   if (!mine.length) return "Pick a few habits. <em>Keep each other going.</em>";
   if (restOf(S.me, today())) return "Rest day. <em>Your streaks are safe.</em>";
-  const left = mine.filter(h => !didOn(S.me, h.id, today()) && !weeklyMet(h) && !isRest(h, today())).length;
+  const left = mine.filter(h => !didOn(S.me, h.id, today()) && !weeklyMet(h) && !isRest(h, today()) && planned(h, today())).length;
   if (left === 0) return "All done today. <em>Nice work.</em>";
   return `${left} ${left===1?"habit":"habits"} left today. <em>Keep the streak alive.</em>`;
 }
@@ -990,9 +1006,11 @@ function listRow(h, kind){
   for (let i = 0; i < 7; i++){
     const d = new Date(mon); d.setDate(d.getDate() + i);
     const k = keyOf(d), cell = el(`<i></i>`); cell.dataset.k = k;
-    if (k > t) cell.className = "fut";
+    const lvx = k > t ? 0 : levelOn(h, k);
+    if (lvx === 0 && isOff(h, k)) cell.className = "off";
+    else if (k > t) cell.className = "fut";
     else {
-      const lv = levelOn(h, k);
+      const lv = lvx;
       if (lv === 2) cell.style.background = `color-mix(in oklab, var(--b) ${Math.round(i / 6 * 100)}%, var(--a))`;
       else if (lv === 1){ cell.style.background = "var(--a)"; cell.style.opacity = .45; }
       else if (isRest(h, k)) cell.className = "rest";
@@ -1107,7 +1125,7 @@ function catchUpTile(){
   let dismissed = null; try { dismissed = localStorage.getItem("catchup-ok"); } catch {}
   if (dismissed === y || restOf(S.me, y)) return null;
   const endY = dk(y).getTime() + 12*36e5;
-  const missed = S.habits.filter(h => (h.owner === S.me || h.owner === US) && perWeek(h) >= 7 && !(h.createdAt > endY) && !didOn(S.me, h.id, y) && !isRest(h, y));
+  const missed = S.habits.filter(h => (h.owner === S.me || h.owner === US) && (perWeek(h) >= 7 || (plannedDays(h) && planned(h, y) && weekState(h, mondayOf(dk(y))) !== "met")) && !(h.createdAt > endY) && !didOn(S.me, h.id, y) && !isRest(h, y));
   if (!missed.length) return null;
   const t = el(`<section class="tile wide catchup"><div class="cu-head"><div><b>Forgot to log yesterday?</b><small>Tap what you did. Your streak updates right away.</small></div><button class="cu-x" type="button">All good</button></div><div class="cu-chips"></div><button class="cu-rest" type="button">I was off yesterday (rest day)</button></section>`);
   const chips = t.querySelector(".cu-chips");
@@ -1130,7 +1148,7 @@ function weekRow(h, kind){
   for (let i = 0; i < 7; i++){
     const d = new Date(mon); d.setDate(d.getDate()+i);
     const k = keyOf(d), lv = k > today() ? -1 : levelOn(h,k);
-    const cell = el(`<div class="${k===today()?'t':''}"><i class="${lv===2?'on':lv===1?'half':lv<0?'future':isRest(h,k)?'rest':''}"></i><span>${DOW[d.getDay()]}</span></div>`);
+    const cell = el(`<div class="${k===today()?'t':''}"><i class="${lv===2?'on':lv===1?'half':isOff(h,k)?'off':lv<0?'future':isRest(h,k)?'rest':''}"></i><span>${DOW[d.getDay()]}</span></div>`);
     cell.style.setProperty("--j", i);
     if (kind !== "theirs" && lv >= 0){
       cell.classList.add("tap"); cell.setAttribute("role","button"); cell.tabIndex = 0;
@@ -1577,6 +1595,7 @@ function vizFor(h, kind = vizOf(h), o = {}){
       const d = new Date(mon); d.setDate(d.getDate()+i);
       const k = keyOf(d), isT = k === today(), future = k > today() && !o.lv, lv = future ? 0 : lvOf(k);
       const dot = el(`<i class="${isT?'now':''}"></i>`); dot.dataset.k = k;
+      if (!lv && isOff(h, k)) dot.className = "off";
       if (lv){ const p = Math.round(i/6*100); dot.style.background = `color-mix(in oklab, var(--b) ${p}%, var(--a))`; dot.style.opacity = lv===2?1:.45; }
       else if (future) dot.style.opacity = .45;
       g.append(dot);
@@ -1806,12 +1825,41 @@ function parseSteps(v){ const a = String(v || "").split(",").map(x => x.trim()).
 // how often: any number of days a week, or daily
 const FREQ = [[1,"1"],[2,"2"],[3,"3"],[4,"4"],[5,"5"],[6,"6"],[7,"Daily"]];
 const freqHint = v => v >= 7 ? "Every day. Rest days and pauses never break your streak." : `Any ${v} day${v > 1 ? "s" : ""} a week. The streak counts weeks you hit it (weeks start Monday).`;
-function freqSeg(value, onPick, hintEl){
-  const d = seg(FREQ, value, v => { if (hintEl) hintEl.textContent = freqHint(v); onPick(v); });
+function freqSeg(value, onPick, hintEl, days0){
+  let freq = value, days = Array.isArray(days0) && days0.length && value < 7 ? days0.slice() : null;
+  const box = el(`<div></div>`), rowEl = el(`<div class="dayrow" role="group" aria-label="Planned days"></div>`);
+  const d = seg(FREQ, value, v => { freq = v; days = null; sync(); onPick(freq, days); });
   d.classList.add("seven");
   d.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-label", i < 6 ? `${i + 1} day${i ? "s" : ""} a week` : "Every day"));
-  if (hintEl) hintEl.textContent = freqHint(value);
-  return d;
+  "MTWTFSS".split("").forEach((ch, i) => {
+    const b = el(`<button type="button" class="dchip" aria-pressed="false"></button>`); b.textContent = ch; b.setAttribute("aria-label", DAYNAMES[i]);
+    b.onclick = () => {
+      const set = new Set(days || []); set.has(i) ? set.delete(i) : set.add(i);
+      days = [...set].sort((a, b) => a - b);
+      if (days.length >= 7){ days = null; freq = 7; } else if (!days.length){ days = []; } else freq = days.length;
+      sync(); onPick(freq, days && days.length ? days : null);
+    };
+    rowEl.append(b);
+  });
+  const sync = () => {
+    d.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-pressed", String(FREQ[i][0] === freq)));
+    rowEl.hidden = !days || freq >= 7;
+    rowEl.querySelectorAll(".dchip").forEach((b, i) => b.setAttribute("aria-pressed", String(!!days && days.includes(i))));
+    if (!hintEl) return;
+    hintEl.textContent = "";
+    if (freq >= 7) { hintEl.textContent = freqHint(7); return; }
+    const link = el(`<button type="button" class="pick-link"></button>`);
+    if (days){
+      hintEl.append(days.length ? `${listDays(days)}. Doing it on another day still counts. ` : "Tap the days you plan to do it. ");
+      link.textContent = "Any days instead"; link.onclick = () => { days = null; sync(); onPick(freq, null); };
+    } else {
+      hintEl.append(freqHint(freq) + " ");
+      link.textContent = "Pick days"; link.onclick = () => { days = []; sync(); };
+    }
+    hintEl.append(link);
+  };
+  box.append(d, rowEl); sync();
+  return box;
 }
 function swapPanel(panel, dir){
   panel.classList.add("enter"); stagger(panel);
@@ -1958,7 +2006,7 @@ function openDetail(h, pickDay){
     const again = panel.querySelector(`[data-k="${k}"]`); if (again && !reduced) again.animate([{transform:"scale(.7)"},{transform:"scale(1.12)"},{transform:"scale(1)"}], {duration:420, easing:"cubic-bezier(.2,.9,.25,1.08)"});
   };
   d.querySelector(".h-title b").textContent = h.title;
-  d.querySelector(".h-title small").textContent = `${h.owner===US?"Together · ":""}${weekly ? perWeek(h)+"× a week" : "Daily"} · ${goalOf(h) ? "goal " + goalOf(h) + " days" : "ongoing"}`;
+  d.querySelector(".h-title small").textContent = `${h.owner===US?"Together · ":""}${weekly ? freqLabel(h) : "Daily"} · ${goalOf(h) ? "goal " + goalOf(h) + " days" : "ongoing"}`;
   if (canEdit){ const e = el(`<button class="chip-btn txt" style="color:var(--ink)">Edit</button>`); e.onclick = () => openEdit(h); d.querySelector(".h-head").append(e); }
   const panel = d.querySelector("#d-panel");
   const nav = (label, canPrev, canNext, prev, next) => {
@@ -2112,7 +2160,8 @@ function openAdd(){
     drawGoal(); picker.redraw();
   }));
   f.querySelector("#h-who").append(seg([[S.me,"Just me"],[US,"Us"]], who, v => { who = v; if (kind !== "steps"){ if (v === US && st.viz === "goal") st.viz = "lanes"; if (v !== US && st.viz === "lanes") st.viz = "goal"; } picker.redraw(); }));
-  f.querySelector("#h-freq").append(freqSeg(freq, v => { freq = v; if (v < 7 && st.viz !== "lanes") { st.viz = "dots"; picker.redraw(); } }, f.querySelector("#h-freq-hint")));
+  let days = null;
+  f.querySelector("#h-freq").append(freqSeg(freq, (v, ds) => { const was = freq; freq = v; days = ds; if (v < 7 && was >= 7 && st.viz !== "lanes") { st.viz = "dots"; picker.redraw(); } }, f.querySelector("#h-freq-hint")));
   drawGoal();
   f.querySelector("#h-cancel").onclick = closeSheet;
   f.onsubmit = e => {
@@ -2122,7 +2171,7 @@ function openAdd(){
       const steps = editor.get();
       if (steps.length < 2) return editor.error("Add at least 2 steps.");
       addHabit(t, who, goal, 7, {viz: st.viz, color: st.color, steps});
-    } else addHabit(t, who, goal, freq, {viz: st.viz, color: st.color});
+    } else addHabit(t, who, goal, freq, {viz: st.viz, color: st.color, ...(days && freq < 7 ? {days} : {})});
     closeSheet(); if (S.view !== "today"){ S.view = "today"; render(); }
   };
   sheet(f);
@@ -2154,7 +2203,8 @@ function openEdit(h){
   let editor = null;
   const picker = lookPicker(st, () => h.owner === US, () => hasSteps ? (editor && editor.get().length >= 2 ? editor.get() : stepsOf(h)) : null);
   if (hasSteps){ editor = stepsEditor(stepsOf(h), () => picker.redraw(), stepsOf(h).length); f.querySelector("#e-steps-wrap .field").append(editor.el); }
-  else f.querySelector("#e-freq").append(freqSeg(freq, v => freq = v, f.querySelector("#e-freq-hint")));
+  let days = plannedDays(h);
+  if (!hasSteps) f.querySelector("#e-freq").append(freqSeg(freq, (v, ds) => { freq = v; days = ds; }, f.querySelector("#e-freq-hint"), plannedDays(h)));
   f.querySelector("#e-look").append(picker);
   f.querySelector("#e-goal").replaceChildren(seg(GOALS, goal, v => { goal = v; st.goal = v; picker.redraw(); }));
   const del = f.querySelector("#e-del");
@@ -2170,6 +2220,7 @@ function openEdit(h){
       patch.steps = steps;
     } else {
       patch.perWeek = freq;
+      patch.days = days && freq < 7 ? days : null;
       if (freq !== perWeek(h)){
         const M = keyOf(mondayOf(nowD())), past = (h.freqPast || []).filter(e => e.to <= M);
         if (!past.some(e => e.to === M)) past.push({to: M, n: perWeek(h)});
@@ -2210,7 +2261,7 @@ function openManage(){
     const c = colorOf(h);
     const r = el(`<button class="row" style="--a:${c.a};--b:${c.b}"><i></i><div><b></b><small></small></div></button>`);
     r.querySelector("b").textContent = h.title;
-    r.querySelector("small").textContent = isPaused(h) ? `Paused since ${dk(h.pauses.at(-1).from).toLocaleDateString("en",{day:"numeric",month:"short"})} · tap to resume` : `${h.owner===US?"Together":"Just you"} · ${perWeek(h)<7?perWeek(h)+"× a week":"daily"} · ${goalOf(h) ? "goal " + goalOf(h) + " days" : "ongoing"}`;
+    r.querySelector("small").textContent = isPaused(h) ? `Paused since ${dk(h.pauses.at(-1).from).toLocaleDateString("en",{day:"numeric",month:"short"})} · tap to resume` : `${h.owner===US?"Together":"Just you"} · ${freqLabel(h)} · ${goalOf(h) ? "goal " + goalOf(h) + " days" : "ongoing"}`;
     if (isPaused(h)) r.style.opacity = .7;
     r.onclick = () => openEdit(h);
     return r;
@@ -2512,7 +2563,7 @@ function notifSnapshot(){
     else {
       let mineWk = 0; for (let i = 0; i <= idx; i++){ const d = new Date(mon); d.setDate(d.getDate() + i); if (didOn(S.me, h.id, keyOf(d))) mineWk++; }
       const need = perWeek(h) - mineWk + (done ? 1 : 0);
-      must = need > 0 && need >= 7 - idx;
+      must = need > 0 && (plannedDays(h) ? planned(h, t) : need >= 7 - idx);
       sp = weeklyMet(h) ? streak(h) - 1 : streak(h);
     }
     return {t: h.title, d: daily, done, rest: inPause(h, t) || restOf(S.me, t), must, sp: Math.max(0, sp)};
