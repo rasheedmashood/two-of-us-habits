@@ -179,7 +179,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 /* viz: week dots */
 .v-dots{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:0 14px;align-items:center;justify-items:center}
 .v-dots i{width:100%;max-width:24px;aspect-ratio:1;border-radius:50%;background:var(--track);display:block}
-.v-dots i.now{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--ink)}
+/* today: a soft ring inside the dot while it's still to do; once done the colour (and the bold day letter) is enough */
+.v-dots i.now{box-shadow:inset 0 0 0 2px color-mix(in oklab,var(--ink) 28%,transparent)}
+.v-dots i.now.lit{box-shadow:none}
 .dot-labels{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:0 14px;margin-top:8px;text-align:center;font-size:11.5px;color:var(--faint);font-weight:600}
 .dot-labels .t{color:var(--ink)}
 .pad-axis{padding:0 18px}
@@ -1498,7 +1500,7 @@ function vizFor(h, kind = vizOf(h), o = {}){
       const d = new Date(mon); d.setDate(d.getDate()+i);
       const k = keyOf(d), isT = k === today(), future = k > today() && !o.lv, lv = future ? 0 : lvOf(k);
       const dot = el(`<i class="${isT?'now':''}"></i>`); dot.dataset.k = k;
-      if (lv){ const p = Math.round(i/6*100); dot.style.background = `color-mix(in oklab, var(--b) ${p}%, var(--a))`; dot.style.opacity = lv===2?1:.45; }
+      if (lv){ const p = Math.round(i/6*100); dot.style.background = `color-mix(in oklab, var(--b) ${p}%, var(--a))`; dot.style.opacity = lv===2?1:.45; if (lv === 2) dot.classList.add("lit"); }
       else if (future) dot.style.opacity = .45;
       g.append(dot);
       lab.append(el(`<span class="${isT?'t':''}">${DOW[d.getDay()]}</span>`));

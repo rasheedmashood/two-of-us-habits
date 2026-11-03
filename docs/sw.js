@@ -1,6 +1,6 @@
 // Offline support: the app shell is cached so the app opens without a connection.
 // Your habit data itself is kept offline by Firestore and syncs when you're back online.
-const CACHE = "two-of-us-v10";
+const CACHE = "two-of-us-v11";
 const SHELL = ["./", "index.html", "firebase-config.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
