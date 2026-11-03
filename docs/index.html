@@ -355,6 +355,7 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 .fx-layer i{position:fixed;width:8px;height:8px;border-radius:50%}
 .day-done{position:fixed;left:50%;bottom:calc(104px + env(safe-area-inset-bottom,0px));z-index:75;display:flex;align-items:center;gap:8px;padding:12px 18px;border-radius:99px;background:var(--ink);color:var(--bg);font-weight:700;font-size:15px;box-shadow:0 14px 30px -12px rgba(0,0,0,.5);pointer-events:none}
 .day-done span{display:grid;color:var(--warn)}
+.day-done em{font-style:normal;white-space:nowrap;max-width:76vw;overflow:hidden;text-overflow:ellipsis}
 .day-done svg{width:18px;height:18px}
 .ping{animation:ping 1s cubic-bezier(.2,.8,.2,1)}
 @keyframes ping{0%{box-shadow:0 0 0 0 color-mix(in oklab,var(--her) 80%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
@@ -441,6 +442,34 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 .dchip{border:0;height:40px;border-radius:12px;background:var(--track);font-weight:700;font-size:13px;color:var(--muted);transition:transform .2s var(--spring),background .2s}
 .dchip:active{transform:scale(.9)}
 .dchip[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+/* fresh habits: Day 1 and a glowing "start here" square */
+.day1{margin:14px 0 14px}.day1 b{display:block;font-family:var(--display);font-weight:500;font-size:clamp(30px,8.5vw,38px);line-height:1;letter-spacing:-.02em}
+.day1 span{display:block;color:var(--muted);font-size:12.5px;margin-top:6px;line-height:1.35}
+.fresh :is(.v-dots i,.v-grid i,.p-heat i,.v-sgrid i,.v-month i,.li-wk i,.wk div.t i).now,.fresh .wk div.t i{box-shadow:inset 0 0 0 2px var(--a),0 0 10px 1px color-mix(in oklab,var(--a) 55%,transparent)!important;animation:freshglow 2.4s ease-in-out infinite}
+@keyframes freshglow{50%{box-shadow:inset 0 0 0 2px var(--a),0 0 16px 4px color-mix(in oklab,var(--a) 35%,transparent)}}
+@media (prefers-reduced-motion: reduce){.fresh .now{animation:none!important}}
+/* add habit: live preview + pick a look */
+.addpv{border-radius:24px;padding:16px 16px 4px;margin:0 0 16px;background:linear-gradient(160deg,color-mix(in oklab,var(--a) 14%,var(--tile-2)),var(--tile));box-shadow:inset 0 0 0 1px var(--rim),0 16px 30px -18px color-mix(in oklab,var(--a) 70%,transparent);overflow:hidden;transition:box-shadow .4s}
+.addpv .ap-t{font-family:var(--display);font-weight:500;font-size:21px;line-height:1.15;min-height:24px;overflow-wrap:anywhere}
+.addpv .ap-t.ph{color:var(--faint)}
+.addpv small{display:block;color:var(--muted);font-size:12.5px;margin:2px 0 6px}
+.addpv .pv{margin:0 -16px;pointer-events:none;background:none!important;box-shadow:none!important;border-radius:0!important}
+.more-row{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:0;border-radius:18px;background:var(--track);padding:12px 16px;margin:0 0 16px;font:inherit;color:var(--ink)}
+.more-row svg{width:18px;height:18px;flex:none;color:var(--muted);transition:transform .3s var(--spring)}
+.more-row[aria-expanded="true"] svg{transform:rotate(180deg)}
+.more-row b{display:block;font-size:15px}.more-row small{display:block;color:var(--muted);font-size:12.5px;margin-top:1px}
+.alt-link{background:none;border:0;padding:0;font:inherit;font-size:13px;font-weight:600;color:var(--ink);text-decoration:underline;text-underline-offset:3px;margin:-8px 2px 16px;display:inline-block;cursor:pointer}
+.pk-added{display:flex;gap:6px;align-items:center;justify-content:center;color:var(--ok);font-weight:700;font-size:13px}.pk-added svg{width:15px;height:15px}
+.pick h3{text-align:center;margin:4px 0 2px}.pick .hint{text-align:center;margin:0 0 14px}
+.pk-stage{display:flex;align-items:center;gap:8px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.pk-arrow{width:36px;height:36px;flex:none;border-radius:50%;border:0;background:var(--track);display:grid;place-items:center;color:var(--muted)}.pk-arrow svg{width:16px;height:16px}
+.pk-card{flex:1;min-width:0;border-radius:26px;padding:16px 16px 6px;overflow:hidden;background:linear-gradient(160deg,color-mix(in oklab,var(--a) 12%,var(--tile-2)),var(--tile));box-shadow:inset 0 0 0 1px var(--rim),0 18px 34px -20px color-mix(in oklab,var(--a) 75%,transparent);min-height:190px}
+.pk-card b{display:block;font-family:var(--display);font-weight:500;font-size:20px;line-height:1.15;margin-bottom:8px}
+.pk-card .pv{margin:0 -16px;pointer-events:none;background:none!important;box-shadow:none!important;border-radius:0!important;min-height:130px;display:flex;flex-direction:column;justify-content:center}
+.pk-name{text-align:center;font-weight:700;margin-top:12px}
+.pk-dots{display:flex;gap:5px;justify-content:center;margin-top:8px}.pk-dots i{width:6px;height:6px;border-radius:3px;background:var(--cell);transition:width .3s var(--spring),background .3s}.pk-dots i.on{width:18px;background:var(--ink)}
+.pick .swatches{justify-content:center;margin-top:14px}
+.pick .btn-row{justify-content:center;margin-top:16px}
 /* notifications */
 .nrow{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:18px;background:var(--track);margin-top:8px}
 .nrow > div{flex:1;min-width:0}.nrow b{display:block;font-size:15px;font-weight:600}.nrow small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.35}
@@ -944,6 +973,7 @@ function render(){
   if (enter){ stagger(board); countUp(board); }
   else if (slide){ window.scrollTo(0, 0); if (!reduced){ const dir = slide === "slide-left" ? 1 : -1; board.animate([{opacity: 0, transform: `translateX(${dir * 48}px)`}, {opacity: 1, transform: "none"}], {duration: 360, easing: "cubic-bezier(.2,.8,.2,1)"}); } countUp(board); }
   else window.scrollTo(0, y);
+  noteStreaks();
   runMoments();
   hideSplash();
   document.querySelector(".nav").hidden = false; // the board always has its bar, even after the sign-in screen
@@ -999,6 +1029,9 @@ const layoutSwitch = () => segSwitch([["widgets", "Widgets", LAYOUTS[0][2]], ["l
 const styleSwitch = () => segSwitch(LAYOUTS, v => S.layout === v, v => { S.layout = v; try { localStorage.setItem("layout", v); } catch {} }, "Widget style");
 // List layout: one quiet line per habit — name, this week's days in the habit's colour, streak, and the tick
 function listRow(h, kind){
+  const r0 = listRowInner(h, kind); if (isFresh(h, kind)) r0.classList.add("fresh"); return r0;
+}
+function listRowInner(h, kind){
   const c = colorOf(h), t = today(), mon = mondayOf(nowD()), steps = stepsOf(h);
   const row = el(`<article class="tile lrow${h.id === popId ? " pop" : ""}" style="--a:${c.a};--b:${c.b}"><div class="lr-main"><button class="p-title"></button><span class="li-wk" aria-hidden="true"></span></div><span class="p-meta"></span></article>`);
   const tb = row.querySelector(".p-title"); tb.textContent = h.title; tb.setAttribute("aria-label", `History for ${h.title}`);
@@ -1404,8 +1437,10 @@ function largeHeat(h){
   box.append(...heatBlock(h, heatWeeks(36)));
   return box;
 }
+// a habit with nothing logged yet: "Day 1" instead of a row of zeros, and today's square glows
+const isFresh = (h, kind) => kind !== "theirs" && completed(h) === 0 && !(h.owner === US ? members() : [h.owner]).some(u => Object.keys(S.progress[u]?.days?.[h.id] || {}).length);
 function habitTile(h, kind, force){
-  const c = colorOf(h), st = streak(h), weekly = perWeek(h) < 7, steps = stepsOf(h);
+  const c = colorOf(h), st = streak(h), weekly = perWeek(h) < 7, steps = stepsOf(h), fresh = isFresh(h, kind);
   const size0 = force || sizeOf(h, kind), size = size0 === "s" && matchMedia("(max-width:360px)").matches ? "w" : size0;
   const tile = el(`<article class="tile sz-${size}${size !== "s" ? " wide" : ""}${h.id === popId ? " pop" : ""}" style="--a:${c.a};--b:${c.b}"></article>`);
   let right;
@@ -1414,11 +1449,12 @@ function habitTile(h, kind, force){
     else { right = el(`<button class="chip-btn txt" aria-label="Nudge">${ICON.bell}</button>`); right.onclick = async () => { right.disabled = true; right.style.opacity=.5; await sendNudge(h); }; }
   } else right = steps ? null : checkBtn(h);
   const who = kind === "theirs" ? h.owner : S.me;
-  const head = headFor(h, steps ? `${stepCount(h, who)} today · ${goalText(h)}` : subFor(h, kind), right);
+  const head = headFor(h, fresh ? (size === "s" ? "New today" : "Day 1 · tick it to start your streak") : steps ? `${stepCount(h, who)} today · ${goalText(h)}` : subFor(h, kind), right);
   if (st > 0) head.querySelector("small").append(el(`<span class="stk"> · <em>${st}</em> ${weekly ? "week" : "day"} streak</span>`));
   tile.append(head);
+  if (fresh) tile.classList.add("fresh");
   if (steps) tile.append(stepPills(h, who, kind !== "theirs"));
-  const left = el(`<div class="tleft"><div class="big"><b class="num">${st}</b><span>${weekly?"week":"day"}<br>streak</span></div></div>`);
+  const left = fresh ? el(`<div class="tleft"><div class="day1"><b>Day 1</b><span>Tick it to start your streak</span></div></div>`) : el(`<div class="tleft"><div class="big"><b class="num">${st}</b><span>${weekly?"week":"day"}<br>streak</span></div></div>`);
   tile.append(left, vizFor(h));
   if (size === "l") tile.append(largeHeat(h));
   return tile;
@@ -1608,6 +1644,11 @@ function vizFor(h, kind = vizOf(h), o = {}){
 }
 
 function sharedTile(h){
+  const t0 = sharedTileInner(h);
+  if (isFresh(h, "ours")){ t0.classList.add("fresh"); const sm = t0.querySelector(".h-title small"); if (sm) sm.textContent = "Day 1 · tick it together to start"; }
+  return t0;
+}
+function sharedTileInner(h){
   const c = colorOf(h), st = streak(h), t = today(), weekly = perWeek(h) < 7, size = sizeOf(h, "ours");
   const tile = el(`<article class="tile wide shared sz-${size}${h.id === popId ? " pop" : ""}" style="--a:${c.a};--b:${c.b}"></article>`);
   const head = headFor(h, weekly ? subFor(h) : goalText(h), stepsOf(h) ? null : checkBtn(h));
@@ -2130,52 +2171,97 @@ function stepsEditor(initial, onChange, locked = 0){
   };
 }
 function openAdd(){
-  let who = S.me, goal = 60, freq = 7, kind = "simple";
-  const st = {viz:"goal", color: Math.floor(Math.random()*PALETTE.length), goal:60};
+  let who = S.me, goal = 0, freq = 7, kind = "simple", days = null;
+  const ci = S.allHabits.length % PALETTE.length, st = {viz: "bars", color: ci, goal: 0};
+  const DOWN = SV('<path d="m6 9 6 6 6-6"/>', 2);
   const f = el(`<form><h3>New habit</h3>
-    <div class="field"><span class="lbl">How many times a day</span><div id="h-kind"></div></div>
+    <div class="addpv"><div class="ap-t ph">Your habit</div><small></small><div class="ap-viz"></div></div>
     <div class="field"><label for="h-title">Habit</label><input id="h-title" maxlength="60" placeholder="e.g. Read 20 pages" autocomplete="off"></div>
     <div id="h-steps-wrap" hidden><div class="field"><span class="lbl">Steps</span></div><p class="hint">The day counts as done when every step is done. You also get stats for each step.</p></div>
     <div class="field"><span class="lbl">Who's doing it</span><div id="h-who"></div></div>
-    <p class="hint">"Us" habits count once you both check them off.</p>
-    <div id="h-freq-wrap"><div class="field"><span class="lbl">How often</span><div id="h-freq"></div></div>
-    <p class="hint" id="h-freq-hint"></p></div>
-    <div class="field"><span class="lbl">Goal</span><div id="h-goal"></div></div>
-    <div id="h-look"></div>
+    <div id="h-freq-wrap"><div class="field"><span class="lbl">How often</span><div id="h-freq"></div></div><p class="hint" id="h-freq-hint" style="margin-bottom:8px"></p></div>
+    <button type="button" class="alt-link" id="h-kind"></button>
+    <button type="button" class="more-row" id="h-more" aria-expanded="false">${DOWN}<div><b>More options</b><small>Set a goal</small></div></button>
+    <div id="h-more-body" hidden><div class="field"><span class="lbl">Goal</span><div id="h-goal"></div></div></div>
     <div class="btn-row"><button class="btn" type="submit">Add habit</button><button class="btn ghost" type="button" id="h-cancel">Cancel</button></div></form>`);
-  const title = f.querySelector("#h-title");
-  const editor = stepsEditor([], () => { if (kind === "steps") picker.redraw(); });
+  const title = f.querySelector("#h-title"), pv = f.querySelector(".addpv");
+  let editor = null; editor = stepsEditor([], () => { if (editor) drawPv(); });
   f.querySelector("#h-steps-wrap .field").append(editor.el);
-  const stepsNow = () => kind === "steps" ? (editor.get().length >= 2 ? editor.get() : ["Step 1", "Step 2", "Step 3"]) : null;
-  const picker = lookPicker(st, () => who === US, stepsNow);
-  f.querySelector("#h-look").append(picker);
-  const drawGoal = () => f.querySelector("#h-goal").replaceChildren(seg(GOALS, goal, v => { goal = v; st.goal = v; picker.redraw(); }));
-  f.querySelector("#h-kind").append(seg([["simple","Once a day"],["steps","Several times"]], kind, v => {
-    kind = v;
-    const steps = v === "steps";
+  function stepsNow(){ return kind === "steps" ? (editor && editor.get().length >= 2 ? editor.get() : ["Step 1", "Step 2", "Step 3"]) : null; }
+  function autoViz(){ return kind === "steps" ? "stepgrid" : who === US ? "lanes" : freq < 7 ? "dots" : "bars"; }
+  function drawPv(){
+    const c = PALETTE[st.color]; pv.style.setProperty("--a", c.a); pv.style.setProperty("--b", c.b);
+    const t = title.value.trim(), tt = pv.querySelector(".ap-t");
+    tt.textContent = t || "Your habit"; tt.classList.toggle("ph", !t);
+    pv.querySelector("small").textContent = `${who === US ? "Together · " : ""}${kind === "steps" ? (stepsNow().length + " steps a day") : freq >= 7 ? "Daily" : days && days.length ? days.map(i => DAYNAMES[i]).join(", ") : freq + "× a week"} · ${goal ? "goal " + goal + " days" : "ongoing"}`;
+    st.viz = autoViz();
+    pv.querySelector(".ap-viz").replaceChildren(samplePreview(st.viz, st.color, who === US, goal || 60, stepsNow()));
+  }
+  title.addEventListener("input", () => { const tt = pv.querySelector(".ap-t"), t = title.value.trim(); tt.textContent = t || "Your habit"; tt.classList.toggle("ph", !t); });
+  const kindBtn = f.querySelector("#h-kind");
+  const setKind = v => {
+    kind = v; const steps = v === "steps";
     f.querySelector("#h-steps-wrap").hidden = !steps;
     f.querySelector("#h-freq-wrap").hidden = steps;
+    kindBtn.textContent = steps ? "Just once a day instead" : "Several times a day? (like 5 prayers)";
     title.placeholder = steps ? "e.g. Pray at the mosque" : "e.g. Read 20 pages";
-    if (steps){ freq = 7; goal = 0; st.goal = 0; st.viz = "stepgrid"; }
-    else { goal = 60; st.goal = 60; st.viz = who === US ? "lanes" : "goal"; editor.error(""); }
-    drawGoal(); picker.redraw();
-  }));
-  f.querySelector("#h-who").append(seg([[S.me,"Just me"],[US,"Us"]], who, v => { who = v; if (kind !== "steps"){ if (v === US && st.viz === "goal") st.viz = "lanes"; if (v !== US && st.viz === "lanes") st.viz = "goal"; } picker.redraw(); }));
-  let days = null;
-  f.querySelector("#h-freq").append(freqSeg(freq, (v, ds) => { const was = freq; freq = v; days = ds; if (v < 7 && was >= 7 && st.viz !== "lanes") { st.viz = "dots"; picker.redraw(); } }, f.querySelector("#h-freq-hint")));
-  drawGoal();
+    if (steps) freq = 7; else editor.error("");
+    drawPv();
+  };
+  kindBtn.onclick = () => setKind(kind === "steps" ? "simple" : "steps");
+  f.querySelector("#h-who").append(seg([[S.me,"Just me"],[US,"Us"]], who, v => { who = v; drawPv(); }));
+  f.querySelector("#h-freq").append(freqSeg(freq, (v, ds) => { freq = v; days = ds; drawPv(); }, f.querySelector("#h-freq-hint")));
+  const more = f.querySelector("#h-more"), moreBody = f.querySelector("#h-more-body");
+  more.onclick = () => { const open = moreBody.hidden; moreBody.hidden = !open; more.setAttribute("aria-expanded", String(open)); };
+  const drawGoal = () => f.querySelector("#h-goal").replaceChildren(seg(GOALS, goal, v => { goal = v; st.goal = v; more.querySelector("small").textContent = v ? `Goal: ${v} days` : "Set a goal"; drawPv(); }));
+  drawGoal(); setKind("simple");
   f.querySelector("#h-cancel").onclick = closeSheet;
   f.onsubmit = e => {
     e.preventDefault();
     const t = title.value.trim(); if (!t) return title.focus();
+    let h;
     if (kind === "steps"){
       const steps = editor.get();
       if (steps.length < 2) return editor.error("Add at least 2 steps.");
-      addHabit(t, who, goal, 7, {viz: st.viz, color: st.color, steps});
-    } else addHabit(t, who, goal, freq, {viz: st.viz, color: st.color, ...(days && freq < 7 ? {days} : {})});
-    closeSheet(); if (S.view !== "today"){ S.view = "today"; render(); }
+      h = addHabit(t, who, goal, 7, {viz: st.viz, color: st.color, steps});
+    } else h = addHabit(t, who, goal, freq, {viz: st.viz, color: st.color, ...(days && freq < 7 ? {days} : {})});
+    if (S.view !== "today"){ S.view = "today"; render(); }
+    if (h) openPickLook(h); else closeSheet();
   };
   sheet(f);
+}
+// right after adding: swipe through the styles on your own habit and tap a colour
+function openPickLook(h){
+  const steps = stepsOf(h), isUs = h.owner === US;
+  const styles = [...(steps ? STEP_STYLES : []), ...(isUs ? [["lanes","Two lanes"]] : []), ...STYLES];
+  let i = Math.max(0, styles.findIndex(([v]) => v === h.viz)), ci = Number.isInteger(h.color) ? h.color : 0;
+  const L = SV('<path d="m15 6-6 6 6 6"/>', 2), R = SV('<path d="m9 6 6 6-6 6"/>', 2);
+  const d = el(`<div class="pick"><div class="pk-added">${ICON.tick}Added</div><h3>Pick a look</h3><p class="hint">Swipe to try styles. You can change it any time.</p>
+    <div class="pk-stage"><button type="button" class="pk-arrow" aria-label="Previous style">${L}</button><div class="pk-card"><b></b><div class="pk-viz"></div></div><button type="button" class="pk-arrow" aria-label="Next style">${R}</button></div>
+    <div class="pk-name"></div><div class="pk-dots" aria-hidden="true"></div><div class="swatches"></div>
+    <div class="btn-row"><button type="button" class="btn" id="pk-ok">Looks good</button></div></div>`);
+  d.querySelector(".pk-card b").textContent = h.title;
+  const card = d.querySelector(".pk-card"), dots = d.querySelector(".pk-dots");
+  styles.forEach(() => dots.append(el(`<i></i>`)));
+  const draw = dir => {
+    const c = PALETTE[ci]; card.style.setProperty("--a", c.a); card.style.setProperty("--b", c.b);
+    d.querySelector(".pk-viz").replaceChildren(samplePreview(styles[i][0], ci, isUs, goalOf(h) || 60, steps));
+    d.querySelector(".pk-name").textContent = styles[i][1];
+    dots.querySelectorAll("i").forEach((x, j) => x.classList.toggle("on", j === i));
+    if (dir && !reduced) card.animate([{opacity: .2, transform: `translateX(${dir * 40}px) scale(.97)`}, {opacity: 1, transform: "none"}], {duration: 320, easing: "cubic-bezier(.2,.8,.2,1)"});
+  };
+  const go = dir => { i = (i + dir + styles.length) % styles.length; draw(dir); };
+  const [prev, next] = d.querySelectorAll(".pk-arrow");
+  prev.onclick = () => go(-1); next.onclick = () => go(1);
+  let x0 = null;
+  const stage = d.querySelector(".pk-stage");
+  stage.addEventListener("pointerdown", e => { x0 = e.clientX; });
+  stage.addEventListener("pointerup", e => { if (x0 === null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 36) go(dx < 0 ? 1 : -1); });
+  const sws = d.querySelector(".swatches");
+  const drawSw = () => { sws.replaceChildren(); PALETTE.forEach((c, j) => { const s2 = el(`<button type="button" class="sw" aria-pressed="${ci === j}" aria-label="Colour ${j + 1}" style="--a:${c.a};--b:${c.b}"></button>`); s2.onclick = () => { ci = j; drawSw(); draw(0); }; sws.append(s2); }); };
+  drawSw(); draw(0);
+  d.querySelector("#pk-ok").onclick = () => { updateHabit(h.id, {viz: styles[i][0], color: ci}); popId = h.id; closeSheet(); };
+  sheet(d);
 }
 function openEdit(h){
   const canEdit = h.owner === S.me || h.owner === US;
@@ -2367,7 +2453,14 @@ let moments = [], momBD = false, momBL = {};
 function runMoments(){
   const list = moments; moments = [];
   if (!list.length || reduced) return;
+  const big = list.find(m => m.type === "mile") || list.find(m => m.type === "first");
   requestAnimationFrame(() => list.forEach(m => {
+    if (m.type === "first" || m.type === "mile"){
+      if (m !== big) return;
+      const t = document.querySelector(`.board > [data-hid="${m.hid}"]`); if (t) burst(t, m.type === "mile" ? 30 : 22);
+      showPill(m.text); return;
+    }
+    if (m.type === "day" && big){ const hl = document.querySelector(".headline"); if (hl) burst(hl, 16); return; }
     if (m.type === "ping"){
       document.querySelectorAll(`.faces img:nth-child(2), .board > [data-hid="${m.hid}"] .who img`).forEach(im => { if (m.who && !im.closest(".faces") && im.closest(".who")?.textContent && !im.closest(".who").textContent.startsWith(nameOf(m.who))) return; im.classList.remove("ping"); void im.offsetWidth; im.classList.add("ping"); });
     }
@@ -2386,6 +2479,30 @@ function burst(target, n = 14){
     d.animate([{transform: "translate(-50%,-50%) scale(.4)", opacity: 1}, {transform: `translate(calc(-50% + ${Math.cos(ang) * dist}px), calc(-50% + ${Math.sin(ang) * dist}px)) scale(1)`, opacity: 1, offset: .6}, {transform: `translate(calc(-50% + ${Math.cos(ang) * dist * 1.15}px), calc(-50% + ${Math.sin(ang) * dist * 1.15 + 16}px)) scale(.6)`, opacity: 0}], {duration: 900 + Math.random() * 300, easing: "cubic-bezier(.2,.8,.3,1)", fill: "forwards"});
   }
   setTimeout(() => layer.remove(), 1400);
+}
+const MILESTONES = [3, 7, 14, 30, 60, 100];
+let streakSeen = null;
+function noteStreaks(){
+  const mine = S.habits.filter(h => h.owner === S.me || h.owner === US), first = !streakSeen;
+  streakSeen = streakSeen || {};
+  mine.forEach(h => {
+    const s = streak(h), prev = streakSeen[h.id], key = "ms:" + h.id;
+    let best = 0; try { best = +localStorage.getItem(key) || 0; } catch {}
+    if (s < best){ try { s ? localStorage.setItem(key, String(s)) : localStorage.removeItem(key); } catch {} best = s; }
+    if (!first && prev !== undefined && s > prev){
+      const unit = perWeek(h) < 7 ? "week" : "day";
+      if (s === 1 && completed(h) === 1) moments.push({type: "first", hid: h.id, text: h.owner === US ? `Day 1 together · ${h.title}` : `Day 1 · your streak has started`});
+      else if (MILESTONES.includes(s) && s > best){ moments.push({type: "mile", hid: h.id, text: `${s} ${unit}s in a row · ${h.title}`}); try { localStorage.setItem(key, String(s)); } catch {} }
+    }
+    streakSeen[h.id] = s;
+  });
+}
+function showPill(text){
+  const pill = el(`<div class="day-done" role="status"><span>${ICON.flame}</span><em></em></div>`);
+  pill.querySelector("em").textContent = text;
+  document.body.append(pill);
+  pill.animate([{opacity: 0, transform: "translate(-50%, 12px) scale(.9)"}, {opacity: 1, transform: "translate(-50%, 0) scale(1)", offset: .15}, {opacity: 1, transform: "translate(-50%, 0) scale(1)", offset: .85}, {opacity: 0, transform: "translate(-50%, -8px) scale(.96)"}], {duration: 2800, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards"});
+  setTimeout(() => pill.remove(), 2900);
 }
 function celebrateDay(){
   const hero = document.querySelector('.board > [data-key="hero"]') || document.querySelector(".headline");
@@ -2438,8 +2555,10 @@ function toggleRest(k){ saveMine(n => { n.rest = n.rest || {}; if (n.rest[k]) de
 function setDayEnd(v){ saveMine(n => { n.dayEnd = v; }); render(); }
 function addHabit(title, owner, goal, freq, extra = {}){
   const h = {title, owner, goal, perWeek: freq || 7, ...extra, createdAt: Date.now(), createdBy: S.me};
-  if (S.demo){ S.allHabits = [...S.allHabits, {...h, id:"d"+Math.random().toString(36).slice(2)}]; syncActive(); render(); return; }
-  queue(() => store.collection("habits").add(h));
+  if (S.demo){ const id = "d" + Math.random().toString(36).slice(2); S.allHabits = [...S.allHabits, {...h, id}]; syncActive(); render(); return {...h, id}; }
+  const id = store.newId("habits");
+  queue(() => store.doc("habits/" + id).set(h));
+  return {...h, id};
 }
 function updateHabit(id, patch){
   if (S.demo){ S.allHabits = S.allHabits.map(h => h.id===id ? {...h, ...patch} : h); syncActive(); render(); return; }
@@ -2744,6 +2863,7 @@ function shim(prefix){
     doc: p => { const ref = F.doc(db, prefix + p); return {
       set: d => F.setDoc(ref, d), merge: d => F.setDoc(ref, d, {merge: true}), update: d => F.updateDoc(ref, d), delete: () => F.deleteDoc(ref),
       onSnapshot: (n, e) => F.onSnapshot(ref, s => n(wrapDoc(s)), e) }; },
+    newId: p => F.doc(F.collection(db, prefix + p)).id,
     collection: p => { const col = F.collection(db, prefix + p);
       const mk = q => ({
         orderBy: (f, dir) => mk(F.query(col, F.orderBy(f, dir || "asc"))),
@@ -2882,6 +3002,7 @@ function tipFor(h, k, s, u){
 
   document.addEventListener("pointerdown", e => {
     if (e.button > 0 || drag || S.dragging) return;
+    if (e.target.closest(".pk-stage")) return;
     const inSheet = !!e.target.closest(".sheet");
     if (!inSheet && e.target.closest(".scrim, .nav")) return;
     const tile = inSheet ? null : e.target.closest(".board > [data-hid]");
