@@ -179,9 +179,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 /* viz: week dots */
 .v-dots{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:0 14px;align-items:center;justify-items:center}
 .v-dots i{width:100%;max-width:24px;aspect-ratio:1;border-radius:50%;background:var(--track);display:block}
-/* today: a soft ring inside the dot while it's still to do; once done the colour (and the bold day letter) is enough */
-.v-dots i.now{box-shadow:inset 0 0 0 2px color-mix(in oklab,var(--ink) 28%,transparent)}
-.v-dots i.now.lit{box-shadow:none}
 .dot-labels{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:0 14px;margin-top:8px;text-align:center;font-size:11.5px;color:var(--faint);font-weight:600}
 .dot-labels .t{color:var(--ink)}
 .pad-axis{padding:0 18px}
@@ -194,7 +191,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 /* viz: dot grid */
 .v-grid{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:3px;padding:0 18px}
 .v-grid i{aspect-ratio:1;border-radius:3px;background:var(--track)}
-.v-grid i.now{box-shadow:0 0 0 1.5px var(--ink)}
 /* viz: streak wave */
 .v-wave{display:grid;grid-template-columns:repeat(21,minmax(0,1fr));gap:3px;height:52px;align-items:end;padding:0 18px}
 .v-wave i{border-radius:3px 3px 1px 1px;min-height:4px;background:var(--track)}
@@ -210,7 +206,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .v-month i.on{background:linear-gradient(135deg,var(--a),var(--b));color:#141016;font-weight:700}
 .v-month i.blank{background:none}
 .v-month i.later{opacity:.35}
-.v-month i.now{box-shadow:0 0 0 1.5px var(--ink)}
 /* viz: progress line */
 .v-line{padding:0 18px}
 .v-line .tr{height:6px;border-radius:99px;background:var(--track);position:relative;margin:18px 0 12px}
@@ -244,7 +239,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .p-heat{display:grid;grid-template-rows:repeat(7,auto);grid-auto-flow:column;gap:3px}
 .p-heat i{aspect-ratio:1;border-radius:3px;background:var(--cell)}
 .p-heat i.future{background:transparent}
-.p-heat i.now{box-shadow:inset 0 0 0 1.5px color-mix(in oklab,var(--ink) 35%,transparent)}
 .enter .p-heat > i{animation:popin .45s var(--spring) both;animation-delay:calc(var(--i,0)*55ms + 100ms + var(--j,0)*16ms)}
 /* week rows */
 .wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:12px}
@@ -254,8 +248,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .wk i.on{background:linear-gradient(135deg,var(--a),var(--b))}
 .wk i.half{background:var(--a);opacity:.4}
 .wk i.future{background:transparent;box-shadow:inset 0 0 0 1px var(--cell)}
-.wk div.t i{box-shadow:inset 0 0 0 2px color-mix(in oklab,var(--ink) 28%,transparent)}
-.wk div.t i.on{box-shadow:none}
 .enter .wk > div{animation:popin .45s var(--spring) both;animation-delay:calc(var(--i,0)*55ms + 100ms + var(--j,0)*30ms)}
 /* square grids: size rows from the container width (Safari ignores aspect-ratio when sizing grid rows) */
 .viz,.prow,#d-panel,.mini-m{container-type:inline-size}
@@ -294,10 +286,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .v-sgrid{display:grid;gap:3px;padding:0 18px;align-items:center}
 .v-sgrid .sg-l{font-size:10px;font-weight:700;color:var(--muted);width:12px;text-align:center}
 .v-sgrid i{height:10px;border-radius:3px;background:var(--cell)}
-.v-sgrid i.now{box-shadow:inset 0 0 0 1.2px var(--ink)}
 .v-stack{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:4px;height:64px;padding:0 18px}
 .v-stack > div{display:flex;flex-direction:column-reverse;gap:2px;border-radius:5px}
-.v-stack > div.now{box-shadow:0 0 0 1.5px var(--ink);padding:1px}
 .v-stack i{flex:1;border-radius:3px;background:var(--cell)}
 .v-srings{position:relative;display:flex;justify-content:center}
 .v-srings svg.arc{width:132px;height:132px}
@@ -428,6 +418,12 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 @keyframes sp-lit{to{transform:scale(1);opacity:1}}
 @keyframes sp-out{0%{opacity:1}35%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.06)}}
 @media (prefers-reduced-motion: reduce){#splash *{animation:none!important}}
+/* today marker, one rule for every chart: a soft ring inside today's cell until something is logged for it.
+   Change --today-ring (or the width) here and every chart follows. Beads keep their own glowing "current bead". */
+:root{--today-ring:color-mix(in oklab,var(--ink) 30%,transparent);--today-w:1.5px}
+:is(.v-dots i,.v-grid i,.p-heat i,.v-sgrid i,.v-month i).now:not([style*="background"]):not(.on),
+.wk div.t i:not(.on):not(.half),
+.v-stack > div.now:not(:has(i[style*="background"])){box-shadow:inset 0 0 0 var(--today-w) var(--today-ring)}
 /* steps editor */
 .sedit{display:grid;gap:8px}
 .srows{display:grid;gap:6px}
@@ -1506,7 +1502,7 @@ function vizFor(h, kind = vizOf(h), o = {}){
       const d = new Date(mon); d.setDate(d.getDate()+i);
       const k = keyOf(d), isT = k === today(), future = k > today() && !o.lv, lv = future ? 0 : lvOf(k);
       const dot = el(`<i class="${isT?'now':''}"></i>`); dot.dataset.k = k;
-      if (lv){ const p = Math.round(i/6*100); dot.style.background = `color-mix(in oklab, var(--b) ${p}%, var(--a))`; dot.style.opacity = lv===2?1:.45; if (lv === 2) dot.classList.add("lit"); }
+      if (lv){ const p = Math.round(i/6*100); dot.style.background = `color-mix(in oklab, var(--b) ${p}%, var(--a))`; dot.style.opacity = lv===2?1:.45; }
       else if (future) dot.style.opacity = .45;
       g.append(dot);
       lab.append(el(`<span class="${isT?'t':''}">${DOW[d.getDay()]}</span>`));
