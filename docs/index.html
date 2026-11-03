@@ -430,6 +430,9 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 .li-wk i.fut{background:transparent;box-shadow:inset 0 0 0 1px var(--cell)}
 .lr-steps{min-width:46px;font-variant-numeric:tabular-nums;color:var(--ink)}
 .lr-steps[aria-pressed="true"]{background:linear-gradient(90deg,var(--a),var(--b));color:#141016}
+.goal-card .btn-row{margin-top:14px;display:flex;flex-wrap:nowrap;gap:8px}
+.goal-card .btn{padding:10px 14px;font-size:14px;white-space:nowrap;flex:none}
+.goal-card .btn:last-child{margin-left:auto}
 /* notifications */
 .nrow{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:18px;background:var(--track);margin-top:8px}
 .nrow > div{flex:1;min-width:0}.nrow b{display:block;font-size:15px;font-weight:600}.nrow small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.35}
@@ -1089,7 +1092,7 @@ function goalCard(){
   const row = t.querySelector(".btn-row");
   const btn = (label, ghost, fn) => { const b = el(`<button type="button" class="btn${ghost ? " ghost" : ""}"></button>`); b.textContent = label; b.onclick = fn; row.append(b); };
   btn("Keep going", false, () => { updateHabit(h.id, {goal: 0}); toast(`${h.title} is now ongoing`); });
-  if (next) btn(`Aim for ${next} days`, true, () => { updateHabit(h.id, {goal: next}); toast(`New goal: ${next} days`); });
+  if (next) btn(`Aim for ${next}`, true, () => { updateHabit(h.id, {goal: next}); toast(`New goal: ${next} days`); });
   btn("Archive", true, () => archiveHabit(h));
   t.querySelector(".cu-x").onclick = () => { try { localStorage.setItem(`goal-ok:${h.id}:${g}`, "1"); } catch {} render(); };
   return t;
