@@ -424,6 +424,22 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 :is(.v-dots i,.v-grid i,.p-heat i,.v-sgrid i,.v-month i).now:not([style*="background"]):not(.on),
 .wk div.t i:not(.on):not(.half),
 .v-stack > div.now:not(:has(i[style*="background"])){box-shadow:inset 0 0 0 var(--today-w) var(--today-ring)}
+/* notifications */
+.nrow{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:18px;background:var(--track);margin-top:8px}
+.nrow > div{flex:1;min-width:0}.nrow b{display:block;font-size:15px;font-weight:600}.nrow small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.35}
+.nrow.off b{color:var(--muted)}
+.nrow.master{background:none;padding:2px 2px 4px;margin-top:0}.nrow.master b{font-size:16px}
+.nrow.info{background:var(--track)}
+.nrow .time{position:relative;flex:none;font-weight:700;font-size:13px;padding:7px 11px;border-radius:99px;background:var(--tile);font-variant-numeric:tabular-nums;cursor:pointer}
+.field .nrow .time{text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink)}
+.nrow .time input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;border:0;padding:0}
+.nrow.off .time{opacity:.5}
+.sw2{flex:none;width:46px;height:28px;border-radius:99px;border:0;padding:0;background:color-mix(in oklab,var(--ink) 16%,transparent);position:relative;transition:background .25s}
+.sw2 i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .3s var(--spring)}
+.sw2[aria-checked="true"]{background:var(--ink)}.sw2[aria-checked="true"] i{left:21px}
+:root[data-mode="dark"] .sw2[aria-checked="true"] i,.sw2[aria-checked="true"] i{background:var(--bg)}
+.sw2:disabled{opacity:.45}
+.notif-ask .btn-row{margin-top:12px}
 /* steps editor */
 .sedit{display:grid;gap:8px}
 .srows{display:grid;gap:6px}
@@ -902,6 +918,7 @@ function render(){
   else window.scrollTo(0, y);
   runMoments();
   hideSplash();
+  syncNotify();
   popId = null;
   document.querySelectorAll(".nav button").forEach(b => { if (b.dataset.view === S.view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   moveNav();
@@ -1120,6 +1137,7 @@ function todayView(){
     if (S.allHabits.length < 3){ const q = emptyTile(true); if (q){ q.dataset.key = "qa"; out.push(q); } }
     const cu = catchUpTile(); if (cu){ cu.dataset.key = "cu"; out.push(cu); }
     const iv = inviteTile(); if (iv){ iv.dataset.key = "iv"; out.push(iv); }
+    else { const na = notifCard(); if (na){ na.dataset.key = "na"; out.push(na); } }
   }
   const tiles = S.layout === "tiles";
   if (tiles && (mine.length + ours.length) && !p.hideHero){ const hero = heroTile([...mine, ...ours]); hero.dataset.key = "hero"; out.push(hero); }
@@ -2118,6 +2136,7 @@ function openManage(){
       <button class="row" id="m-rest" type="button"><div><b></b><small></small></div></button></div>
     <div class="field" style="margin:18px 0 0"><span class="lbl">My day ends at</span><div id="m-dayend"></div></div>
     <p class="hint" style="margin:8px 0 0">Check-ins before this time count toward the previous day. Handy for late nights.</p>
+    <div id="m-notif"></div>
     <div class="field" style="margin:22px 0 0"><span class="lbl">Appearance</span><div id="m-mode"></div></div><div class="field" style="margin:22px 0 0"><span class="lbl">Your data</span><button class="row" type="button" id="m-backup"><div><b>Download a backup</b><small>All habits and check-ins for both of you, as a file</small></div></button></div><div id="m-account"></div></div>`);
   d.querySelector("#m-mode").append(seg([["auto","Auto"],["light","Light"],["dark","Dark"]], getMode(), setMode));
   d.querySelector("#m-dayend").append(seg([[0,"Midnight"],[2,"2 am"],[3,"3 am"],[4,"4 am"]], S.progress[S.me]?.dayEnd || 0, v => setDayEnd(v)));
@@ -2143,6 +2162,7 @@ function openManage(){
   d.querySelector("#m-add").onclick = openAdd;
   d.querySelector("#m-cz").onclick = enterCustomise;
   d.querySelector("#m-backup").onclick = downloadBackup;
+  d.querySelector("#m-notif").append(notifSection());
   if (!S.demo){
     const acc = d.querySelector("#m-account");
     if (!partnerId()){ acc.append(el(`<div class="field" style="margin:22px 0 0"><span class="lbl">Invite your partner</span></div>`)); const r = el(`<div class="invite-row" style="margin-top:0"></div>`); r.append(...inviteButtons()); acc.append(r); }
@@ -2266,20 +2286,21 @@ function noteMoments(beforeDone, beforeLv){
 const lvSnapshot = () => Object.fromEntries(S.habits.filter(h => h.owner === US).map(h => [h.id, levelOn(h, today())]));
 function toggleDay(hid, k){ momBD = allMineDone(); momBL = lvSnapshot(); return toggleDayInner(hid, k); }
 function toggleDayInner(hid, k){
-  let nowOn = false;
+  let nowOn = false; const was = didOn(S.me, hid, today());
   saveMine(n => {
     const m = n.days[hid] = n.days[hid] || {}, st = stepsOf(HB[hid]);
     const full = st ? (m[k] === true || (Array.isArray(m[k]) && m[k].length >= st.length)) : !!m[k];
     if (full) delete m[k]; else { m[k] = st ? st.map((_, i) => i) : true; nowOn = true; }
   });
   if (nowOn && k === today()) popId = hid;
+  if (k === today()) noteSharedFinish(hid, was);
   noteMoments(momBD, momBL);
   render();
 }
 function toggle(hid){ toggleDay(hid, today()); }
 function toggleStep(hid, k, i){
   const st = stepsOf(HB[hid]); if (!st) return toggleDay(hid, k);
-  let full = false; momBD = allMineDone(); momBL = lvSnapshot();
+  let full = false; momBD = allMineDone(); momBL = lvSnapshot(); const was = didOn(S.me, hid, today());
   saveMine(n => {
     const m = n.days[hid] = n.days[hid] || {};
     let a = m[k] === true ? st.map((_, j) => j) : Array.isArray(m[k]) ? m[k].filter(j => j < st.length) : [];
@@ -2288,6 +2309,7 @@ function toggleStep(hid, k, i){
     full = a.length >= st.length;
   });
   if (full && k === today()) popId = hid;
+  if (k === today()) noteSharedFinish(hid, was);
   noteMoments(momBD, momBL);
   render();
 }
@@ -2316,6 +2338,9 @@ function removeHabit(id){
 }
 async function sendNudge(h){
   if (!S.demo) queue(() => store.doc("nudges/"+h.owner).set({from:S.me, habit:h.id, at:Date.now(), seen:false}));
+  const st = stepsOf(h); let step;
+  if (st){ const a = stepArr(h.owner, h.id, today()); step = st.find((_, i) => !a.includes(i)); }
+  pushToPartner("nudge", h, step ? {step} : {});
   toast(`Nudge sent to ${nameOf(h.owner)}`);
 }
 function ackNudge(){ S.nudge = {...S.nudge, seen:true}; render(); if (!S.demo) queue(() => store.doc("nudges/"+S.me).update({seen:true})); }
@@ -2382,6 +2407,155 @@ function startDemo(){
 const FB_VERSION = "10.12.2";
 let FB = null;
 const GOOGLE_ICON = '<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.3c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2.1-1.9 3.3-4.7 3.3-8Z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.5-2.7c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.7H2.1v2.8A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.7 14a6.6 6.6 0 0 1 0-4.2V7H2.1a11 11 0 0 0 0 9.8L5.7 14Z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.1-3.1A11 11 0 0 0 2.1 7l3.6 2.8C6.6 7.3 9.1 5.4 12 5.4Z"/></svg>';
+// ---------- notifications ----------
+// The notification server (a free Cloudflare Worker, source in /notify) sends Web Push to the phones.
+// Each person picks their own types and times; they're kept in their own prefs. "On this phone" is per device.
+const NOTIFY_URL = window.NOTIFY_URL || "";
+const NOTIF_DEFAULTS = {daily: true, dailyAt: "20:00", risk: true, riskAt: "22:00", nudges: true, progress: true};
+const notifPrefs = () => ({...NOTIF_DEFAULTS, ...(prefs().notif || {})});
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+let pushOn = (() => { try { return localStorage.getItem("push-on") === "1"; } catch { return false; } })();
+const setPushOn = v => { pushOn = v; try { v ? localStorage.setItem("push-on", "1") : localStorage.removeItem("push-on"); } catch {} };
+function pushState(){
+  if (S.demo) return "demo";
+  if (!NOTIFY_URL) return "unavailable";
+  if (!pushSupported()) return isIOS && !standalone ? "install" : "unsupported";
+  if (Notification.permission === "denied") return "denied";
+  return pushOn && Notification.permission === "granted" ? "on" : "off";
+}
+async function notifyApi(path, body){
+  const token = await FB.auth.currentUser.getIdToken();
+  const r = await fetch(NOTIFY_URL + path, {method: "POST", headers: {"Content-Type": "application/json", Authorization: "Bearer " + token}, body: JSON.stringify(body || {})});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(j.error || "request failed"), {status: r.status});
+  return j;
+}
+const b64urlToBytes = s => { s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; return Uint8Array.from(atob(s), c => c.charCodeAt(0)); };
+// what today looks like for me, so the server can send the evening reminders without the app open
+function notifSnapshot(){
+  const t = today(), mon = mondayOf(nowD()), idx = (nowD().getDay() + 6) % 7;
+  const habits = S.habits.filter(h => h.owner === S.me || h.owner === US).map(h => {
+    const daily = perWeek(h) >= 7, done = didOn(S.me, h.id, t);
+    let must = false, sp;
+    if (daily) sp = levelOn(h, t) === 2 ? streak(h) - 1 : streak(h);
+    else {
+      let mineWk = 0; for (let i = 0; i <= idx; i++){ const d = new Date(mon); d.setDate(d.getDate() + i); if (didOn(S.me, h.id, keyOf(d))) mineWk++; }
+      const need = perWeek(h) - mineWk + (done ? 1 : 0);
+      must = need > 0 && need >= 7 - idx;
+      sp = weeklyMet(h) ? streak(h) - 1 : streak(h);
+    }
+    return {t: h.title, d: daily, done, rest: inPause(h, t) || restOf(S.me, t), must, sp: Math.max(0, sp)};
+  });
+  return {day: t, rest: restOf(S.me, t), habits};
+}
+function notifState(){
+  let tz = "UTC"; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch {}
+  return {prefs: {on: true, ...notifPrefs()}, tz, dayEnd: S.progress[S.me]?.dayEnd || 0, name: nameOf(S.me), snap: notifSnapshot()};
+}
+async function enablePush(){
+  if (pushState() === "demo"){ toast("Notifications work on your real board"); return false; }
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted"){ toast(perm === "denied" ? "Notifications are blocked for this app" : "Notifications not turned on"); render(); return false; }
+    const reg = await navigator.serviceWorker.ready;
+    const {key} = await (await fetch(NOTIFY_URL + "/vapid")).json();
+    let sub = await reg.pushManager.getSubscription();
+    if (sub && sub.options?.applicationServerKey){ const cur = new Uint8Array(sub.options.applicationServerKey), want = b64urlToBytes(key); if (cur.length !== want.length || cur.some((b, i) => b !== want[i])){ await sub.unsubscribe(); sub = null; } }
+    sub = sub || await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: b64urlToBytes(key)});
+    await notifyApi("/subscribe", {hid: S.hid, sub: sub.toJSON(), ...notifState()});
+    setPushOn(true); lastSync = "";
+    notifyApi("/test").catch(() => {});
+    toast("Notifications on");
+    return true;
+  } catch (e) { console.warn(e); toast("Couldn't turn on notifications. Try again in a moment."); return false; }
+}
+async function disablePush(){
+  setPushOn(false);
+  try {
+    const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
+    if (sub){ notifyApi("/unsubscribe", {endpoint: sub.endpoint}).catch(() => {}); await sub.unsubscribe(); }
+  } catch (e) { console.warn(e); }
+  toast("Notifications off on this phone");
+}
+// keep the server's copy of my day up to date (only when something actually changed)
+let syncT = null, syncDue = 0, lastSync = (() => { try { return localStorage.getItem("push-last") || ""; } catch { return ""; } })();
+function syncNotify(now){
+  if (pushState() !== "on" || !S.ready.habits || !S.ready.progress) return;
+  const due = Date.now() + (now ? 50 : 2500);
+  if (syncT && syncDue <= due) return; // an earlier send is already planned
+  clearTimeout(syncT); syncDue = due;
+  syncT = setTimeout(async () => { syncT = null;
+    const st = notifState(), sig = JSON.stringify(st);
+    if (sig === lastSync) return;
+    try { await notifyApi("/sync", st); lastSync = sig; try { localStorage.setItem("push-last", sig); } catch {} }
+    catch (e) { if (e.status === 404 && Notification.permission === "granted") enablePush(); }
+  }, due - Date.now());
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden) syncNotify(true); });
+// instant ones: a nudge, or me finishing a shared habit before my partner
+function pushToPartner(type, h, extra = {}){
+  const to = type === "nudge" ? h.owner : partnerId();
+  if (S.demo || !NOTIFY_URL || !to || to === S.me) return;
+  notifyApi("/notify", {hid: S.hid, to, type, from: nameOf(S.me), habit: h.title, habitId: h.id, ...extra}).catch(e => console.warn(e));
+}
+function noteSharedFinish(hid, before){
+  const h = HB[hid], pid = partnerId(), t = today();
+  if (!h || h.owner !== US || !pid) return;
+  if (!before && didOn(S.me, hid, t) && !didOn(pid, hid, t)) pushToPartner("progress", h);
+}
+function notifCard(){
+  if (pushState() !== "off" || Notification.permission !== "default") return null;
+  try { if (localStorage.getItem("push-ask-ok")) return null; } catch {}
+  const t = el(`<section class="tile wide catchup notif-ask"><div class="cu-head"><div><b>Get reminders?</b><small>A gentle nudge in the evening if something's left, and when ${esc(partnerId() ? nameOf(partnerId()) : "your partner")} nudges you. You choose which ones in the menu.</small></div></div><div class="btn-row"><button class="btn" type="button">Turn on</button><button class="btn ghost" type="button">Not now</button></div></section>`);
+  const [on, later] = t.querySelectorAll(".btn");
+  on.onclick = async () => { on.disabled = true; await enablePush(); render(); };
+  later.onclick = () => { try { localStorage.setItem("push-ask-ok", "1"); } catch {} render(); };
+  return t;
+}
+function refreshNotif(){ setTimeout(() => { const host = document.getElementById("m-notif"); if (host) host.replaceChildren(notifSection()); }, 300); }
+function notifSection(){
+  const st = pushState(), np = notifPrefs(), pn = partnerId() ? nameOf(partnerId()) : "your partner";
+  const box = el(`<div class="field" style="margin:22px 0 0"><span class="lbl">Notifications</span></div>`);
+  const msg = {
+    install: ["Add to Home Screen first", "iPhone only allows notifications for apps on the Home Screen. Tap Share, then “Add to Home Screen”, and open it from there."],
+    denied: ["Notifications are blocked", isIOS ? "Turn them on in iPhone Settings → Notifications → Two of Us, then come back." : "Allow notifications for this site in your browser settings, then come back."],
+    unsupported: ["Not available here", "This browser can't show notifications. Open the app from your phone's Home Screen."],
+    unavailable: ["Coming soon", "Notifications aren't set up yet."]
+  }[st];
+  if (msg){ const n = el(`<div class="nrow info"><div><b></b><small></small></div></div>`); n.querySelector("b").textContent = msg[0]; n.querySelector("small").textContent = msg[1]; box.append(n); return box; }
+  const on = st === "on" || (st === "demo" && pushOn);
+  const sw = (checked, label) => { const b = el(`<button type="button" class="sw2" role="switch" aria-checked="${checked}"><i></i></button>`); b.setAttribute("aria-label", label); return b; };
+  const master = el(`<div class="nrow master"><div><b>On this phone</b><small>Each of you picks your own</small></div></div>`);
+  const ms = sw(on, "Notifications on this phone"); master.append(ms);
+  ms.onclick = async () => { ms.disabled = true; ms.setAttribute("aria-checked", String(!on)); if (on){ if (S.demo) setPushOn(false); else await disablePush(); } else if (S.demo) { setPushOn(true); } else await enablePush(); refreshNotif(); };
+  box.append(master);
+  const fmt = v => { const [h, m] = v.split(":").map(Number); return `${(h % 12) || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "am" : "pm"}`; };
+  const row = (key, title, sub, atKey) => {
+    const r = el(`<div class="nrow${np[key] && on ? "" : " off"}"><div><b></b><small></small></div></div>`);
+    r.querySelector("b").textContent = title; r.querySelector("small").textContent = sub;
+    if (atKey && np[key]){
+      const t = el(`<label class="time"><span></span><input type="time" step="900"></label>`);
+      t.querySelector("span").textContent = fmt(np[atKey]);
+      const inp = t.querySelector("input"); inp.value = np[atKey]; inp.disabled = !on; inp.setAttribute("aria-label", `${title} time`);
+      inp.onchange = () => { if (!inp.value) return; const [h, m] = inp.value.split(":").map(Number), v = `${String(h).padStart(2, "0")}:${String(Math.floor(m / 15) * 15).padStart(2, "0")}`; t.querySelector("span").textContent = fmt(v); setPref(p => { p.notif = {...notifPrefs(), [atKey]: v}; }); syncNotify(true); };
+      r.append(t);
+    }
+    const s2 = sw(np[key], title); s2.disabled = !on;
+    s2.onclick = () => { s2.setAttribute("aria-checked", String(!np[key])); setPref(p => { p.notif = {...notifPrefs(), [key]: !np[key]}; }); syncNotify(true); refreshNotif(); };
+    r.append(s2);
+    return r;
+  };
+  box.append(
+    row("daily", "Daily reminder", "Only if something is still left", "dailyAt"),
+    row("risk", "Streak at risk", "Only when a streak would break tonight", "riskAt"),
+    row("nudges", "Nudges", `When ${pn} taps the bell on your habit`),
+    row("progress", `${pn[0].toUpperCase() + pn.slice(1)}'s progress`, `When ${pn} finishes a shared habit`)
+  );
+  box.append(el(`<p class="hint" style="margin:10px 2px 0">No notification is ever sent if there's nothing to do.${on ? " Tap a time to change it." : ""}</p>`));
+  return box;
+}
 // ---------- offline pill ----------
 const netPill = el(`<div class="netpill" role="status" hidden>Offline · your check-ins will sync</div>`); document.body.append(netPill);
 const netSync = () => { netPill.hidden = S.demo || navigator.onLine; };
