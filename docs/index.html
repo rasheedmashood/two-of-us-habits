@@ -378,6 +378,8 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 .cz-top b{display:block;font-family:var(--display);font-weight:500;font-size:22px}
 .cz-top small{display:block;color:var(--muted);font-size:13px;margin-top:4px;line-height:1.4}
 .cz-toggles{display:flex;flex-wrap:wrap;gap:8px}
+.cz-style{display:grid;gap:8px;justify-items:start}
+.cz-panel > .lbl{margin-bottom:-4px}
 .cz-t{opacity:.55}
 .cz-t.on{opacity:1;box-shadow:inset 0 0 0 1.5px var(--ink)}
 .into-shared{box-shadow:inset 0 0 0 2px var(--her),0 24px 48px -16px rgba(0,0,0,.45)!important}
@@ -428,7 +430,6 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 .li-wk i.fut{background:transparent;box-shadow:inset 0 0 0 1px var(--cell)}
 .lr-steps{min-width:46px;font-variant-numeric:tabular-nums;color:var(--ink)}
 .lr-steps[aria-pressed="true"]{background:linear-gradient(90deg,var(--a),var(--b));color:#141016}
-@media (max-width:430px){.lay button:not([aria-pressed="true"]) span{display:none}.lay button{padding:8px 11px}}
 /* notifications */
 .nrow{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:18px;background:var(--track);margin-top:8px}
 .nrow > div{flex:1;min-width:0}.nrow b{display:block;font-size:15px;font-weight:600}.nrow small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.35}
@@ -950,20 +951,26 @@ function topBar(){
 const LAYOUTS = [
   ["tiles","Tiles",'<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>'],
   ["week","Week",'<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'],
-  ["year","Year",'<path d="M4 5h3v3H4zM10.5 5h3v3h-3zM17 5h3v3h-3zM4 10.5h3v3H4zM10.5 10.5h3v3h-3zM17 10.5h3v3h-3zM4 16h3v3H4zM10.5 16h3v3h-3zM17 16h3v3h-3z"/>'],
-  ["list","List",'<path d="M4 6.5h16M4 12h16M4 17.5h16"/>']
+  ["year","Year",'<path d="M4 5h3v3H4zM10.5 5h3v3h-3zM17 5h3v3h-3zM4 10.5h3v3H4zM10.5 10.5h3v3h-3zM17 10.5h3v3h-3zM4 16h3v3H4zM10.5 16h3v3h-3zM17 16h3v3h-3z"/>']
 ];
-try { S.layout = localStorage.getItem("layout") || "tiles"; } catch { S.layout = "tiles"; }
-function layoutSwitch(){
-  const d = el(`<div class="lay" role="group" aria-label="Layout"><span class="lay-ind"></span></div>`);
-  LAYOUTS.forEach(([v,label,path]) => {
-    const b = el(`<button type="button" aria-pressed="${S.layout===v}">${SV(path,1.7)}<span>${label}</span></button>`);
-    b.onclick = () => { if (S.layout === v) return; S.layout = v; try { localStorage.setItem("layout", v); } catch {} animMode = "enter"; render(); };
+const LIST_ICON = '<path d="M4 6.5h16M4 12h16M4 17.5h16"/>';
+// Two separate choices: Widgets or List on top; the widget style (Tiles / Week / Year) lives in Customise
+try { S.layout = localStorage.getItem("layout") || "tiles"; S.list = localStorage.getItem("view-list") === "1"; } catch { S.layout = "tiles"; S.list = false; }
+if (!LAYOUTS.some(([v]) => v === S.layout)){ S.layout = "tiles"; }
+function segSwitch(items, isOn, pick, label){
+  const d = el(`<div class="lay" role="group"><span class="lay-ind"></span></div>`);
+  d.setAttribute("aria-label", label);
+  items.forEach(([v, text, path]) => {
+    const b = el(`<button type="button" aria-pressed="${isOn(v)}">${SV(path,1.7)}<span>${text}</span></button>`);
+    b.onclick = () => { if (isOn(v)) return; pick(v); animMode = "enter"; render(); };
     d.append(b);
   });
   requestAnimationFrame(() => { const on = d.querySelector('[aria-pressed="true"]'), ind = d.querySelector(".lay-ind"); if (on){ ind.style.width = on.offsetWidth + "px"; ind.style.transform = `translateX(${on.offsetLeft}px)`; } });
   return d;
 }
+const layoutSwitch = () => segSwitch([["widgets", "Widgets", LAYOUTS[0][2]], ["list", "List", LIST_ICON]], v => (v === "list") === S.list,
+  v => { S.list = v === "list"; try { S.list ? localStorage.setItem("view-list", "1") : localStorage.removeItem("view-list"); } catch {} }, "View");
+const styleSwitch = () => segSwitch(LAYOUTS, v => S.layout === v, v => { S.layout = v; try { localStorage.setItem("layout", v); } catch {} }, "Widget style");
 // List layout: one quiet line per habit — name, this week's days in the habit's colour, streak, and the tick
 function listRow(h, kind){
   const c = colorOf(h), t = today(), mon = mondayOf(nowD()), steps = stepsOf(h);
@@ -1145,6 +1152,9 @@ function customisePanel(){
     tg.append(c);
   };
   if (pid) add(`You & ${nameOf(pid)}`, "hideDuo");
+  const st = el(`<div class="cz-style"><span class="lbl">Widget style</span></div>`); st.append(styleSwitch());
+  t.querySelector(".cz-top").after(st);
+  if (pid) tg.before(el(`<span class="lbl">Cards</span>`));
   t.querySelector("#cz-done").onclick = exitCustomise;
   return t;
 }
@@ -1175,9 +1185,9 @@ function todayView(){
     const iv = inviteTile(); if (iv){ iv.dataset.key = "iv"; out.push(iv); }
     else { const na = notifCard(); if (na){ na.dataset.key = "na"; out.push(na); } }
   }
-  const tiles = S.layout === "tiles";
+  const tiles = !S.list && S.layout === "tiles";
   if (tiles && pid && !p.hideDuo){ const duo = duoTile(pid); duo.dataset.key = "duo"; out.push(duo); }
-  const mk = S.layout === "year" ? patternRow : S.layout === "week" ? weekRow : S.layout === "list" ? listRow : null;
+  const mk = S.list ? listRow : S.layout === "year" ? patternRow : S.layout === "week" ? weekRow : null;
   const section = (label, list, kind, emptyText) => {
     out.push(secLabel(label, kind, list.length));
     if (p.collapsed?.[kind] && !cz) return;
@@ -2375,7 +2385,7 @@ document.querySelectorAll(".nav button").forEach(b => b.onclick = () => {
   S.view = b.dataset.view; closeSheet(); animMode = "enter"; window.scrollTo({top:0}); render();
 });
 document.querySelector(".nav-inner").prepend(el(`<span class="nav-ind" aria-hidden="true"></span>`));
-let rsz; window.addEventListener("resize", () => { moveNav(); clearTimeout(rsz); rsz = setTimeout(() => { const nw = matchMedia("(max-width:360px)").matches; if ((S.layout === "year" && S.view === "today") || nw !== wasNarrow){ wasNarrow = nw; render(); } }, 200); });
+let rsz; window.addEventListener("resize", () => { moveNav(); clearTimeout(rsz); rsz = setTimeout(() => { const nw = matchMedia("(max-width:360px)").matches; if ((!S.list && S.layout === "year" && S.view === "today") || nw !== wasNarrow){ wasNarrow = nw; render(); } }, 200); });
 let wasNarrow = matchMedia("(max-width:360px)").matches;
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
 
