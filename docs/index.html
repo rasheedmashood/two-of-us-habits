@@ -539,6 +539,11 @@ body.reordering .board > [data-hid]:not(.lifting){transition:opacity .25s;opacit
 .who img{width:20px;height:20px;border-radius:50%}
 .who.on{color:var(--ink)}
 .who.on::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--ok)}
+.nudge-chip{border:0;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;box-shadow:inset 0 0 0 1px var(--rim);transition:transform .2s var(--spring),opacity .3s}
+.nudge-chip:active{transform:scale(.94)}
+.nudge-chip svg{width:14px;height:14px;color:var(--muted)}
+.nudge-chip.sent,.nudge-s.sent{opacity:.45}
+.nudge-s{min-width:40px}.nudge-s svg{width:16px;height:16px}
 .sync{font-size:12.5px;font-weight:700;color:var(--ok);align-self:center}
 
 /* empty */
@@ -1025,12 +1030,13 @@ function listRow(h, kind){
     if (didOn(h.owner, h.id, t)) row.append(el(`<span class="chip-btn done" aria-label="Done today">${ICON.tick}</span>`));
     else { const n = el(`<button class="chip-btn txt" aria-label="Nudge">${ICON.bell}</button>`); n.onclick = async () => { n.disabled = true; n.style.opacity = .5; await sendNudge(h); }; row.append(n); }
   } else if (steps){
+    if (partnerPending(h)) row.append(nudgeBtn(h));
     const b = el(`<button type="button" class="chip-btn txt lr-steps"></button>`);
     b.textContent = stepCount(h, S.me); b.setAttribute("aria-label", `${h.title}: ${stepCount(h, S.me)} today. Open to tick`);
     if (didOn(S.me, h.id, t)) b.setAttribute("aria-pressed", "true");
     b.onclick = e => { e.stopPropagation(); openDetail(h); };
     row.append(b);
-  } else row.append(checkBtn(h));
+  } else { if (partnerPending(h)) row.append(nudgeBtn(h)); row.append(checkBtn(h)); }
   return row;
 }
 function heatWeeks(pad = 28){ const w = Math.min(window.innerWidth, 520) - 32 - pad; return Math.max(16, Math.min(53, Math.floor((w + 3) / 13))); }
@@ -1043,8 +1049,8 @@ function rowHead(h, kind){
   if (kind === "theirs"){
     if (didOn(h.owner,h.id,today())) head.append(el(`<span class="chip-btn done" aria-label="Done today">${ICON.tick}</span>`));
     else { const n = el(`<button class="chip-btn txt" aria-label="Nudge">${ICON.bell}</button>`); n.onclick = async () => { n.disabled = true; n.style.opacity = .5; await sendNudge(h); }; head.append(n); }
-  } else if (stepsOf(h)){ const w = el(`<div class="p-steps"></div>`); w.append(stepPills(h, S.me, true)); head.append(w); }
-  else head.append(checkBtn(h));
+  } else if (stepsOf(h)){ if (partnerPending(h)) head.append(nudgeBtn(h)); const w = el(`<div class="p-steps"></div>`); w.append(stepPills(h, S.me, true)); head.append(w); }
+  else { if (partnerPending(h)) head.append(nudgeBtn(h)); head.append(checkBtn(h)); }
   return head;
 }
 function heatBlock(h, N){
@@ -1619,7 +1625,13 @@ function sharedTile(h){
   v.style.margin = vizOf(h) !== "lanes" ? "18px -18px 0" : "4px 0 0";
   tile.append(v);
   const chips = el(`<div class="who-chips"></div>`);
-  ms.forEach(u => { const w = el(`<span class="who ${didOn(u,h.id,t)?'on':''}"><img alt=""><span></span></span>`); w.querySelector("img").src = avatarOf(u); w.querySelector("span").textContent = nameOf(u) + (stepsOf(h) ? ` ${stepCount(h, u)}` : ""); chips.append(w); });
+  ms.forEach(u => {
+    const pend = u !== S.me && partnerPending(h);
+    const w = el(pend ? `<button type="button" class="who nudge-chip"><img alt=""><span></span>${ICON.bell}</button>` : `<span class="who ${didOn(u,h.id,t)?'on':''}"><img alt=""><span></span></span>`);
+    w.querySelector("img").src = avatarOf(u); w.querySelector("span").textContent = nameOf(u) + (stepsOf(h) ? ` ${stepCount(h, u)}` : "");
+    if (pend){ w.setAttribute("aria-label", `Nudge ${nameOf(u)}`); w.onclick = async e => { e.stopPropagation(); w.disabled = true; w.classList.add("sent"); await sendNudge(h); }; }
+    chips.append(w);
+  });
   if (ms.length >= 2 && ms.every(u => didOn(u,h.id,t))) chips.append(el(`<span class="sync">In sync today</span>`));
   else if (ms.length < 2) chips.append(el(`<span class="who">Waiting for your partner to join</span>`));
   tile.append(chips);
@@ -2457,12 +2469,23 @@ function removeHabit(id){
   else queue(() => store.doc("habits/"+id).delete());
   toast(`Deleted "${gone.title}"`, undo);
 }
+// nudge whoever still has it to do: the owner of their own habit, or your partner on a shared one
 async function sendNudge(h){
-  if (!S.demo) queue(() => store.doc("nudges/"+h.owner).set({from:S.me, habit:h.id, at:Date.now(), seen:false}));
+  const to = h.owner === US ? partnerId() : h.owner;
+  if (!to) return;
+  if (!S.demo) queue(() => store.doc("nudges/"+to).set({from:S.me, habit:h.id, at:Date.now(), seen:false}));
   const st = stepsOf(h); let step;
-  if (st){ const a = stepArr(h.owner, h.id, today()); step = st.find((_, i) => !a.includes(i)); }
+  if (st){ const a = stepArr(to, h.id, today()); step = st.find((_, i) => !a.includes(i)); }
   pushToPartner("nudge", h, step ? {step} : {});
-  toast(`Nudge sent to ${nameOf(h.owner)}`);
+  toast(`Nudge sent to ${nameOf(to)}`);
+}
+// on a shared habit your partner hasn't done today, their chip / row gets a small bell
+const partnerPending = h => { const pid = partnerId(); return h.owner === US && !!pid && !didOn(pid, h.id, today()); };
+function nudgeBtn(h, cls = "chip-btn txt nudge-s"){
+  const n = el(`<button type="button" class="${cls}">${ICON.bell}</button>`);
+  n.setAttribute("aria-label", `Nudge ${nameOf(partnerId())}`);
+  n.onclick = async e => { e.stopPropagation(); n.disabled = true; n.classList.add("sent"); await sendNudge(h); };
+  return n;
 }
 function ackNudge(){ S.nudge = {...S.nudge, seen:true}; render(); if (!S.demo) queue(() => store.doc("nudges/"+S.me).update({seen:true})); }
 function saveJar(j){ S.jar = j; render(); if (!S.demo) queue(() => store.doc("settings/jar").set(j)); }
@@ -2617,7 +2640,7 @@ function syncNotify(now){
 document.addEventListener("visibilitychange", () => { if (document.hidden) syncNotify(true); });
 // instant ones: a nudge, or me finishing a shared habit before my partner
 function pushToPartner(type, h, extra = {}){
-  const to = type === "nudge" ? h.owner : partnerId();
+  const to = type === "nudge" && h.owner !== US ? h.owner : partnerId();
   if (S.demo || !NOTIFY_URL || !to || to === S.me) return;
   notifyApi("/notify", {hid: S.hid, to, type, from: nameOf(S.me), habit: h.title, habitId: h.id, ...extra}).catch(e => console.warn(e));
 }
